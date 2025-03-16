@@ -102,8 +102,8 @@ To set up automated updates:
 
 1. Copy the systemd files to your systemd directory:
    ```bash
-   sudo cp /opt/project-earthgrid/tinc/tinc-autoupdate.service /etc/systemd/system/
-   sudo cp /opt/project-earthgrid/tinc/tinc-autoupdate.timer /etc/systemd/system/
+   sudo cp /opt/project-earthgrid/tinc/systemd/tinc-autoupdate.service /etc/systemd/system/
+   sudo cp /opt/project-earthgrid/tinc/systemd/tinc-autoupdate.timer /etc/systemd/system/
    ```
 
 2. Reload systemd to recognize the new files:
