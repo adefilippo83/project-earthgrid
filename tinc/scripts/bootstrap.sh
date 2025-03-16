@@ -25,18 +25,8 @@ NETWORK_NAME="pi-net"
 TINC_DIR="/etc/tinc/$NETWORK_NAME"
 mkdir -p "$TINC_DIR/hosts"
 
-# Clone the configuration repository
 REPO_DIR="/opt/project-earthgrid"
 TINC_CONFIG_DIR="$REPO_DIR/tinc"
-if [ -d "$REPO_DIR" ]; then
-   echo "Repository directory already exists. Updating..."
-   cd "$REPO_DIR"
-   git pull
-else
-   echo "Cloning configuration repository..."
-   git clone https://github.com/adefilippo83/project-earthgrid.git "$REPO_DIR"
-fi
-
 # Set up the first-time configuration
 bash "$TINC_CONFIG_DIR/scripts/setup-node.sh" "$NODE_NAME"
 

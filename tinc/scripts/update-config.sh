@@ -38,6 +38,16 @@ for host_file in "$TINC_CONFIG_DIR/hosts/"*; do
    fi
 done
 
+# Determine Python command to use
+if command -v python3 >/dev/null 2>&1; then
+   PYTHON_CMD="python3"
+elif command -v python >/dev/null 2>&1; then
+   PYTHON_CMD="python"
+else
+   echo "Python is not installed. Cannot parse YAML configuration."
+   exit 1
+fi
+
 # Check for changes in node configuration
 echo "Checking for node configuration changes..."
 if $PYTHON_CMD -c "
@@ -61,6 +71,26 @@ try:
            if current_ip != vpn_ip:
                print(f'VPN IP has changed from {current_ip} to {vpn_ip}')
                sys.exit(2)  # IP has changed
+           
+           # Check if hostname has changed in host file
+           if 'hostname' in node:
+               hostname_changed = False
+               current_hostname = None
+               host_file_path = '$TINC_DIR/hosts/$NODE_NAME'
+               
+               if os.path.exists(host_file_path):
+                   with open(host_file_path, 'r') as f:
+                       for line in f:
+                           if 'Address = ' in line:
+                               current_hostname = line.strip().split('Address = ')[1]
+                               break
+                   
+                   if current_hostname and current_hostname != node['hostname']:
+                       print(f'Hostname has changed from {current_hostname} to {node[\"hostname\"]}')
+                       sys.exit(4)  # Hostname has changed
+               else:
+                   sys.exit(5)  # Host file doesn't exist yet
+           
            break
    
    if not found:

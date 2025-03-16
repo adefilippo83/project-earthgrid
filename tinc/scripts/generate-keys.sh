@@ -41,7 +41,9 @@ try:
    for node in config['nodes']:
        if node['name'] == '$NODE_NAME':
            print(f\"Subnet = {node['vpn_ip']}/32\")
-           if 'public_ip' in node and node.get('is_publicly_accessible', False):
+           if 'hostname' in node:
+               print(f\"Address = {node['hostname']}\")
+           elif 'public_ip' in node:  # Fallback to public_ip if present for backward compatibility
                print(f\"Address = {node['public_ip']}\")
            print(\"Port = 655\")
            break

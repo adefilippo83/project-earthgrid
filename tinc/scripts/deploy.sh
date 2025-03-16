@@ -1,4 +1,4 @@
-i#!/bin/bash
+#!/bin/bash
 # This script deploys configuration updates to all nodes
 
 set -e
@@ -25,10 +25,15 @@ try:
    with open('$INVENTORY_FILE', 'r') as f:
        config = yaml.safe_load(f)
    for node in config['nodes']:
+       # Determine SSH connection hostname/IP with priority order
        if 'ssh_host' in node:
            ssh_host = node['ssh_host']
+       elif 'hostname' in node:
+           ssh_host = node['hostname']
+       elif 'public_ip' in node:
+           ssh_host = node['public_ip']
        else:
-           ssh_host = node.get('public_ip', node['vpn_ip'])
+           ssh_host = node['vpn_ip']
        
        ssh_user = node.get('ssh_user', 'pi')
        print(f\"{node['name']}:{ssh_user}@{ssh_host}\")
