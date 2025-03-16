@@ -10,6 +10,7 @@ This repository contains centralized configuration management for a tinc VPN mes
 - Automated deployment scripts
 - Support for full mesh network topology
 - Designed for Raspberry Pi devices
+- Hostname-based configuration for easier maintenance
 
 ## Repository Structure
 
@@ -58,35 +59,53 @@ This repository contains centralized configuration management for a tinc VPN mes
 
 ### Adding a New Node
 
-1. Add the node details to `tinc/inventory/nodes.yml` and commit this change to the repository
-2. On the new Raspberry Pi, run:
+Follow these steps to add a new node to the VPN network in a single PR:
 
-```bash
-curl -s https://raw.githubusercontent.com/adefilippo83/project-earthgrid/main/tinc/scripts/bootstrap.sh | sudo bash -s node1
-```
+1. Clone the repository to the new Raspberry Pi:
+   ```bash
+   sudo mkdir -p /opt
+   sudo git clone https://github.com/adefilippo83/project-earthgrid.git /opt/project-earthgrid
+   cd /opt/project-earthgrid
+   ```
 
-Replace `node1` with your actual node name.
+2. Create a new branch for your node:
+   ```bash
+   git checkout -b add-node-mynodename
+   ```
 
-3. The script will generate a public key file which needs to be submitted via a pull request:
+3. Add your node details to the inventory file:
+   ```bash
+   # Edit the inventory file with your preferred editor
+   sudo nano tinc/inventory/nodes.yml
+   
+   # Add your node's information in the format:
+   # - name: mynodename
+   #   vpn_ip: 172.16.0.X  # Choose an unused IP
+   #   hostname: mynodename.example.com  # Use your node's hostname
+   ```
 
-```bash
-# Create a new branch
-cd /opt/project-earthgrid && git checkout -b add-node-node1
+4. Generate keys for your node:
+   ```bash
+   sudo tinc/scripts/generate-keys.sh mynodename
+   ```
 
-# Add and commit the key
-git add tinc/hosts/node1 && git commit -m "Add public key for node1"
+5. Commit your changes and push to the repository:
+   ```bash
+   git add tinc/inventory/nodes.yml tinc/hosts/mynodename
+   git commit -m "Add new node: mynodename"
+   git push origin add-node-mynodename
+   ```
 
-# Push to your fork
-git push origin add-node-node1
-```
+6. Create a pull request on GitHub from your branch to the main branch
 
-4. Create a pull request on GitHub
-5. Wait for the PR to be reviewed and approved by a network administrator
-6. After approval, deploy the updated configuration to all existing nodes:
+7. Wait for the PR to be reviewed and approved by a network administrator
 
-```bash
-./tinc/scripts/deploy.sh
-```
+8. After approval, the network administrator will deploy the updated configuration to all existing nodes
+
+9. On your Raspberry Pi, you can complete the setup with:
+   ```bash
+   sudo tinc/scripts/bootstrap.sh mynodename
+   ```
 
 For more details on the PR process, see [tinc/docs/PR-PROCESS.md](tinc/docs/PR-PROCESS.md)
 
@@ -118,21 +137,21 @@ For passwordless deployment, you can specify SSH credentials in `tinc/inventory/
 nodes:
   - name: node1
     vpn_ip: 172.16.0.1
-    ssh_host: 192.168.1.100  # Internal/reachable IP for SSH
-    ssh_user: pi             # SSH username
+    hostname: node1.example.com  # Hostname for SSH connection
+    ssh_user: pi                 # SSH username
 ```
 
 Or set up SSH keys for authentication.
 
 ### Adding a Public Node
 
-If you have access to a server with a public IP (like a VPS), add it to your nodes:
+If you have access to a server with a public hostname (like a VPS), add it to your nodes:
 
 ```yaml
 nodes:
   - name: publicnode
     vpn_ip: 172.16.0.254
-    public_ip: 203.0.113.10
+    hostname: publicnode.example.com
     is_publicly_accessible: true
 ```
 
@@ -158,16 +177,24 @@ From any node, ping another node using its VPN IP:
 ping 172.16.0.2  # Replace with another node's VPN IP
 ```
 
+Or using hostname (if configured in /etc/hosts or DNS):
+
+```bash
+ping node2.vpn   # If you've set up hostname resolution
+```
+
 ### Common Issues
 
 1. **Nodes can't connect**: Ensure all nodes have updated host files with the latest public keys.
-2. **Connection timeouts**: NAT traversal might be failing; consider adding a public node.
-3. **Git errors**: Check your git credentials and repository access.
+2. **Hostname resolution failures**: Make sure all hostnames used in configuration are resolvable or consider setting up an internal DNS.
+3. **Connection timeouts**: NAT traversal might be failing; consider adding a public node.
+4. **Git errors**: Check your git credentials and repository access.
 
 ## Security Considerations
 
 - This setup doesn't use port forwarding, which improves security
 - All traffic between nodes is encrypted
+- Using hostnames instead of hardcoded IPs allows for more flexibility with dynamic IPs
 
 ## License
 
