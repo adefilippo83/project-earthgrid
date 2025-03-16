@@ -1,3 +1,7 @@
+# Host file for node1
+Subnet = 172.16.0.1/32
+Address = muflo.mynetgear.com
+Port = 655
 -----BEGIN RSA PUBLIC KEY-----
 MIICCgKCAgEAsj29Dx4ZeIiuMstHG6RzPtV6xy9v6aQT9wkDLXR1ZNXtQGBvdckt
 ClobjkM/YjBXbMYV9DMxxg5iXMWMQxdKO0j4VNt9nyW7Z8+GeXkfNqcqIdgPUeTi
