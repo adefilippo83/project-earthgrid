@@ -31,7 +31,7 @@ else
    exit 1
 fi
 
-# Parse node configuration from YAML
+# Parse node configuration from YAML - now with hostname
 NODE_CONFIG=$($PYTHON_CMD -c "
 import yaml, sys
 try:
@@ -40,6 +40,10 @@ try:
    for node in config['nodes']:
        if node['name'] == '$NODE_NAME':
            print(f\"VPN_IP={node['vpn_ip']}\")
+           if 'hostname' in node:
+               print(f\"HOSTNAME={node['hostname']}\")
+           elif 'public_ip' in node:
+               print(f\"HOSTNAME={node['public_ip']}\")
            break
    else:
        sys.exit(1)
@@ -53,7 +57,7 @@ if [ $? -ne 0 ]; then
    exit 1
 fi
 
-# Extract VPN IP from configuration
+# Extract VPN IP and hostname from configuration
 eval "$NODE_CONFIG"
 if [ -z "$VPN_IP" ]; then
    echo "Error: Could not determine VPN IP for node $NODE_NAME"
@@ -61,6 +65,9 @@ if [ -z "$VPN_IP" ]; then
 fi
 
 echo "Setting up node $NODE_NAME with VPN IP $VPN_IP"
+if [ -n "$HOSTNAME" ]; then
+   echo "Using hostname: $HOSTNAME"
+fi
 
 # Create tinc.conf - first read the template
 mkdir -p "$TINC_DIR/hosts"
@@ -93,16 +100,36 @@ chmod +x "$TINC_DIR/tinc-up" "$TINC_DIR/tinc-down"
 # Copy existing host files from repo
 for host_file in "$TINC_CONFIG_DIR/hosts/"*; do
    if [ -f "$host_file" ]; then
-       cp "$host_file" "$TINC_DIR/hosts/"
+       # Don't copy this node's host file if it exists, as we'll create it properly below
+       if [ "$(basename "$host_file")" != "$NODE_NAME" ]; then
+           cp "$host_file" "$TINC_DIR/hosts/"
+       fi
    fi
 done
 
 # Check if we already have keys for this node
-if [ ! -f "$TINC_DIR/hosts/$NODE_NAME" ] || ! grep -q "BEGIN RSA PUBLIC KEY" "$TINC_DIR/hosts/$NODE_NAME"; then
+if [ ! -f "$TINC_DIR/rsa_key.priv" ] || ! grep -q "BEGIN RSA PRIVATE KEY" "$TINC_DIR/rsa_key.priv"; then
    echo "Generating new keys for $NODE_NAME..."
-   tincd -n "$NETWORK_NAME" -K4096
    
-   # Copy the generated public key to the repo directory for PR creation
+   # Generate the private key
+   tincd -n "$NETWORK_NAME" --generate-keys=4096
+   
+   # Now create the host file manually with proper subnet and hostname
+   HOST_FILE="$TINC_DIR/hosts/$NODE_NAME"
+   echo "# Host file for $NODE_NAME" > "$HOST_FILE"
+   echo "Subnet = $VPN_IP/32" >> "$HOST_FILE"
+   
+   # Add hostname if available
+   if [ -n "$HOSTNAME" ]; then
+      echo "Address = $HOSTNAME" >> "$HOST_FILE"
+   fi
+   
+   echo "Port = 655" >> "$HOST_FILE"
+   
+   # Extract the public key from the private key and append to the host file
+   tincd -n "$NETWORK_NAME" -K < /dev/null
+   
+   # Copy to repo
    cp "$TINC_DIR/hosts/$NODE_NAME" "$TINC_CONFIG_DIR/hosts/"
    
    echo "New key generated. Please submit this via a pull request:"
@@ -110,9 +137,9 @@ if [ ! -f "$TINC_DIR/hosts/$NODE_NAME" ] || ! grep -q "BEGIN RSA PUBLIC KEY" "$T
    echo "   cd $REPO_DIR && git checkout -b add-node-$NODE_NAME"
    echo ""
    echo "2. Add and commit your key:"
-   echo "   git add tinc/hosts/$NODE_NAME && git commit -m \"Add public key for $NODE_NAME\""
+   echo "   git add tinc/hosts/$NODE_NAME tinc/inventory/nodes.yml && git commit -m \"Add public key for $NODE_NAME\""
    echo ""
-   echo "3. Push to your fork and create a pull request:"
+   echo "3. Push and create a pull request:"
    echo "   git push origin add-node-$NODE_NAME"
    echo ""
    echo "4. Visit your GitHub repository to create the pull request"
@@ -120,6 +147,38 @@ if [ ! -f "$TINC_DIR/hosts/$NODE_NAME" ] || ! grep -q "BEGIN RSA PUBLIC KEY" "$T
    echo "Note: Your VPN will be fully operational only after this PR is approved and merged."
 else
    echo "Using existing keys for $NODE_NAME"
+   
+   # Still need to ensure the host file has the correct subnet and hostname
+   HOST_FILE="$TINC_DIR/hosts/$NODE_NAME"
+   if [ -f "$HOST_FILE" ] && ! grep -q "Subnet = $VPN_IP/32" "$HOST_FILE"; then
+      echo "Updating host file with subnet information..."
+      cp "$HOST_FILE" "$HOST_FILE.bak"
+      echo "# Host file for $NODE_NAME" > "$HOST_FILE"
+      echo "Subnet = $VPN_IP/32" >> "$HOST_FILE"
+      if [ -n "$HOSTNAME" ]; then
+         echo "Address = $HOSTNAME" >> "$HOST_FILE"
+      fi
+      echo "Port = 655" >> "$HOST_FILE"
+      grep -A 100 "BEGIN RSA PUBLIC KEY" "$HOST_FILE.bak" >> "$HOST_FILE"
+      cp "$HOST_FILE" "$TINC_CONFIG_DIR/hosts/"
+   fi
+fi
+
+# Verify the host file has the required information
+HOST_FILE="$TINC_DIR/hosts/$NODE_NAME"
+if ! grep -q "Subnet = $VPN_IP/32" "$HOST_FILE"; then
+   echo "Error: Host file is missing subnet information!"
+   exit 1
+fi
+
+if [ -n "$HOSTNAME" ] && ! grep -q "Address = $HOSTNAME" "$HOST_FILE"; then
+   echo "Error: Host file is missing hostname information!"
+   exit 1
+fi
+
+if ! grep -q "BEGIN RSA PUBLIC KEY" "$HOST_FILE"; then
+   echo "Error: Host file is missing RSA public key!"
+   exit 1
 fi
 
 # Enable IP forwarding
