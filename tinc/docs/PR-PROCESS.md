@@ -55,12 +55,7 @@ Once the PR is approved and merged:
    git pull
    ```
 
-2. A network administrator should deploy the changes:
-   ```bash
-   ./tinc/scripts/deploy.sh
-   ```
-
-3. The new node will now be able to connect to the network
+2. The new node will now be able to connect to the network
 
 ## PR Template
 
