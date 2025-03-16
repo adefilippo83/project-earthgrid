@@ -1,0 +1,17 @@
+# Host file for node1
+Subnet = 172.16.0.1/32
+Address = muflo.mynetgear.com
+Port = 655
+-----BEGIN RSA PUBLIC KEY-----
+MIICCgKCAgEAsj29Dx4ZeIiuMstHG6RzPtV6xy9v6aQT9wkDLXR1ZNXtQGBvdckt
+ClobjkM/YjBXbMYV9DMxxg5iXMWMQxdKO0j4VNt9nyW7Z8+GeXkfNqcqIdgPUeTi
+yttkIgu7/9tmCEzy2iGpXjDKCR3LNZr4hui2E9tg5eVRTRY4TNOmK+F3inquOp3I
+Wi1BUn1QzBUg8BgykXRpaHNUedAUrBkf3BqmXsEeNQasdCdnCoDOsUPllgix3Kmt
+Ql5Mv3XCtpg8eRYCNIQf1c218o27fhd8pavgEdzQH6IslZZ9xFbNcIlF7oAm3CiM
+JAzgJBVsaeLFncPd1q56m9SVey2oRsby/t9aKfOgsy6mtrIes27xo/flLXs+Hfu7
+dVeMqRFUADfqVJptMjtQ19dq1e0URrtWy8QWzeSbPIz4L8YTH4g99YmDke/nWUBD
+Ctgxtaumq0yN9f9G13WMP1NlFmeksS+7E+9oOKvDwsTg6XhbCMB9U6eaAf/3rJp4
+zKsuMeh9w0W1QTzvqub2toU8auP2w5vvO29+gOtyzYWqpGrmVZoVBOOpvvqR6Fx7
+h8r7wWtrNGd1sxrrlvjrPLRCVCPjiXi2NInabD8rUUSgKiSJ8ObVkUa012rEy5ha
+n/xuTk1Xs6Os2FBKn1p/fEIRafIZqQ7TGPcqkUx4mobN+YZB3kvxedcCAwEAAQ==
+-----END RSA PUBLIC KEY-----
