@@ -7,10 +7,10 @@ This repository contains centralized configuration management for a tinc VPN mes
 - Centralized management of tinc VPN configuration
 - Automatic NAT traversal setup (no port forwarding required)
 - Git-based version control for configuration and public keys
-- Automated deployment scripts
 - Support for full mesh network topology
 - Designed for Raspberry Pi devices
 - Hostname-based configuration for easier maintenance
+- Automated configuration updates via systemd timer
 
 ## Repository Structure
 
@@ -29,7 +29,6 @@ This repository contains centralized configuration management for a tinc VPN mes
 │   │   ├── setup-node.sh        # Script to set up a new node
 │   │   ├── update-config.sh     # Script to update configuration on a node
 │   │   ├── generate-keys.sh     # Script to generate keys for a new node
-│   │   ├── deploy.sh            # Script to deploy configuration to nodes
 │   │   └── bootstrap.sh         # Bootstrap script for new nodes
 │   ├── inventory/
 │   │   └── nodes.yml            # Node inventory with IPs and details
@@ -43,23 +42,16 @@ This repository contains centralized configuration management for a tinc VPN mes
     └── pull_request_template.md # PR template
 ```
 
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - Raspberry Pi devices with Raspberry Pi OS installed
 - Internet access for all devices
 - Git installed on all devices
-- Basic understanding of SSH and Linux
+- Basic understanding of Linux
 
-### Initial Setup
+## Adding a New Node
 
-1. Clone this repository from GitHub: `git clone https://github.com/adefilippo83/project-earthgrid.git`
-2. Customize `tinc/inventory/nodes.yml` with your node information
-
-### Adding a New Node
-
-Follow these steps to add a new node to the VPN network in a single PR:
+Follow these steps to add a new node to the VPN network:
 
 1. Clone the repository to the new Raspberry Pi:
    ```bash
@@ -84,9 +76,9 @@ Follow these steps to add a new node to the VPN network in a single PR:
    #   hostname: mynodename.example.com  # Use your node's hostname
    ```
 
-4. Generate keys for your node:
+4. Run the bootstrap script to configure your node:
    ```bash
-   sudo tinc/scripts/generate-keys.sh mynodename
+   sudo tinc/scripts/bootstrap.sh mynodename
    ```
 
 5. Commit your changes and push to the repository:
@@ -100,50 +92,51 @@ Follow these steps to add a new node to the VPN network in a single PR:
 
 7. Wait for the PR to be reviewed and approved by a network administrator
 
-8. After approval, the network administrator will deploy the updated configuration to all existing nodes
-
-9. On your Raspberry Pi, you can complete the setup with:
-   ```bash
-   sudo tinc/scripts/bootstrap.sh mynodename
-   ```
-
 For more details on the PR process, see [tinc/docs/PR-PROCESS.md](tinc/docs/PR-PROCESS.md)
 
-### Updating Configuration
+## Automated Configuration Updates
 
-1. Make changes to the configuration files (e.g., `tinc/inventory/nodes.yml`)
-2. Commit and push your changes to the repository
-3. Deploy the changes to all nodes:
+The repository includes systemd service and timer files to automatically update your node's configuration from the repository. This ensures your node stays in sync with network changes without manual intervention.
 
+To set up automated updates:
+
+1. Copy the systemd files to your systemd directory:
+   ```bash
+   sudo cp /opt/project-earthgrid/tinc/tinc-autoupdate.service /etc/systemd/system/
+   sudo cp /opt/project-earthgrid/tinc/tinc-autoupdate.timer /etc/systemd/system/
+   ```
+
+2. Reload systemd to recognize the new files:
+   ```bash
+   sudo systemctl daemon-reload
+   ```
+
+3. Enable and start the timer:
+   ```bash
+   sudo systemctl enable tinc-autoupdate.timer
+   sudo systemctl start tinc-autoupdate.timer
+   ```
+
+By default, the update service will run:
+- 5 minutes after system boot
+- Every 30 minutes thereafter
+
+To check the status of the automated update service:
 ```bash
-./tinc/scripts/deploy.sh
+sudo systemctl status tinc-autoupdate.timer
+sudo systemctl list-timers --all
 ```
 
-### Deploying to Specific Nodes
-
-To deploy only to specific nodes:
-
+To modify the update frequency, edit the timer file and change the `OnUnitActiveSec` value:
 ```bash
-./tinc/scripts/deploy.sh -n node1 -n node2
+sudo nano /etc/systemd/system/tinc-autoupdate.timer
+# Change OnUnitActiveSec=30min to your desired interval
+# Then reload and restart:
+sudo systemctl daemon-reload
+sudo systemctl restart tinc-autoupdate.timer
 ```
 
-## Advanced Configuration
-
-### SSH Configuration
-
-For passwordless deployment, you can specify SSH credentials in `tinc/inventory/nodes.yml`:
-
-```yaml
-nodes:
-  - name: node1
-    vpn_ip: 172.16.0.1
-    hostname: node1.example.com  # Hostname for SSH connection
-    ssh_user: pi                 # SSH username
-```
-
-Or set up SSH keys for authentication.
-
-### Adding a Public Node
+## Adding a Public Node
 
 If you have access to a server with a public hostname (like a VPS), add it to your nodes:
 
