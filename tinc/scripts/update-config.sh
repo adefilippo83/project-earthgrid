@@ -97,7 +97,7 @@ try:
        print(f'Node {NODE_NAME} not found in inventory!')
        sys.exit(1)
    
-   # Check if connect configuration has changed
+   # Check if connect configuration has changed - ONLY for publicly accessible nodes
    current_connects = set()
    with open('$TINC_DIR/tinc.conf', 'r') as f:
        for line in f:
@@ -106,7 +106,7 @@ try:
    
    new_connects = set()
    for node in config['nodes']:
-       if node['name'] != '$NODE_NAME':
+       if node['name'] != '$NODE_NAME' and node.get('is_publicly_accessible', False):
            new_connects.add(f'ConnectTo = {node[\"name\"]}')
    
    if current_connects != new_connects:

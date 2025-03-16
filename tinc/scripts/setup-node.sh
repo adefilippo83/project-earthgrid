@@ -73,14 +73,14 @@ fi
 mkdir -p "$TINC_DIR/hosts"
 TINC_CONF_TEMPLATE=$(cat "$TINC_CONFIG_DIR/config/tinc.conf.template")
 
-# Generate connect lines for all other nodes
+# Generate connect lines ONLY for publicly accessible nodes
 CONNECT_LINES=$($PYTHON_CMD -c "
 import yaml
 try:
    with open('$TINC_CONFIG_DIR/inventory/nodes.yml', 'r') as f:
        config = yaml.safe_load(f)
    for node in config['nodes']:
-       if node['name'] != '$NODE_NAME':
+       if node['name'] != '$NODE_NAME' and node.get('is_publicly_accessible', False):
            print(f\"ConnectTo = {node['name']}\")
 except Exception as e:
    print(f'Error: {e}', file=sys.stderr)
