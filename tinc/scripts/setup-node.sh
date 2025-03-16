@@ -62,12 +62,12 @@ fi
 
 echo "Setting up node $NODE_NAME with VPN IP $VPN_IP"
 
-# Create tinc.conf
+# Create tinc.conf - first read the template
 mkdir -p "$TINC_DIR/hosts"
-cat "$TINC_CONFIG_DIR/config/tinc.conf.template" | sed "s/%NODE_NAME%/$NODE_NAME/g" > "$TINC_DIR/tinc.conf"
+TINC_CONF_TEMPLATE=$(cat "$TINC_CONFIG_DIR/config/tinc.conf.template")
 
 # Generate connect lines for all other nodes
-$PYTHON_CMD -c "
+CONNECT_LINES=$($PYTHON_CMD -c "
 import yaml
 try:
    with open('$TINC_CONFIG_DIR/inventory/nodes.yml', 'r') as f:
@@ -78,10 +78,12 @@ try:
 except Exception as e:
    print(f'Error: {e}', file=sys.stderr)
    sys.exit(1)
-" > "$TINC_DIR/connect_to.conf"
+")
 
-cat "$TINC_DIR/connect_to.conf" >> "$TINC_DIR/tinc.conf"
-rm "$TINC_DIR/connect_to.conf"
+# Replace placeholders and write to tinc.conf
+echo "${TINC_CONF_TEMPLATE}" | \
+  sed "s/%NODE_NAME%/$NODE_NAME/g" | \
+  sed "s/%CONNECT_TO_NODES%/$CONNECT_LINES/g" > "$TINC_DIR/tinc.conf"
 
 # Create tinc-up and tinc-down scripts
 cat "$TINC_CONFIG_DIR/config/tinc-up.template" | sed "s|%VPN_IP%|$VPN_IP|g" > "$TINC_DIR/tinc-up"
