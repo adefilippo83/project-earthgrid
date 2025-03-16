@@ -1,0 +1,3 @@
+#!/bin/sh
+ip link set $INTERFACE up
+ip addr add %VPN_IP%/16 dev $INTERFACE
