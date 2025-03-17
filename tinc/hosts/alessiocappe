@@ -1,0 +1,13 @@
+# Host file for alessiocappe
+Subnet = 172.16.0.2/32
+Address = alessiocappe.ptlug
+Port = 655
+
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEA7UMaElDurLz9NepC6umZqCFOIdltwYT1zLYraa0X+OVU52ONiuMM
+5EnSbomCur+HRsujVYneQpc0AGzc/bmt2NSEyZHxnqb7dZR78rdZqFOZ3YMUuy9l
+g8tE0lLCAhf/Q3FrIhqnjVFch14wKeAncqgBsfKJFPmg0Vq5R3zQXyyKzSEJUR74
+ncbecKYRzq/vWKzOwDQUbCp+F+Nb9WrHFtaC/T4TAFppXSRMvGDfwRctqDxve0fM
+aQ5MhhQ3wdKpmKsNTrSMzTVuaX5iLtW9UxzfHaDKlA87sKpbPkTdNeRkNfAOJy5j
++QhMqpWffE6bDRZont6DgtDiJuPZR0ivDQIDAQAB
+-----END RSA PUBLIC KEY-----
