@@ -55,7 +55,10 @@ This repository contains centralized configuration management for a Tinc VPN mes
 │   │   └── web.cfg.template           # Template for web gateway configuration
 │   ├── scripts/
 │   │   ├── install-tahoe.sh           # Script to install Tahoe-LAFS
-│   │   ├── setup-tahoe-node.sh        # Script to set up a Tahoe node
+│   │   ├── setup-introducer.sh        # Script to set up an introducer node
+│   │   ├── setup-storage-node.sh      # Script to set up a storage node
+│   │   ├── setup-client-node.sh       # Script to set up a client node
+│   │   ├── setup-web-gateway.sh       # Script to set up a web gateway
 │   │   ├── update-tahoe-config.sh     # Script to update Tahoe configuration
 │   │   ├── bootstrap-tahoe-grid.sh    # Initialize the Tahoe grid (first-time setup)
 │   │   └── add-storage-node.sh        # Add a new storage node to the grid
@@ -249,20 +252,7 @@ If you have nodes with the web role enabled:
 2. You can browse, upload, and download files through this interface
 3. To access from outside the VPN, consider setting up a reverse proxy
 
-## Storage Grid Health
-
-To check the health of your storage grid:
-
-```bash
-# On any client node
-sudo -u tahoe tahoe statistics gatherer-uri
-
-# Check storage status of the grid
-sudo -u tahoe tahoe status
-
-# Check disk usage
-sudo -u tahoe tahoe disk-usage
-```
+For detailed usage instructions, see [tahoe/docs/TAHOE-USAGE.md](tahoe/docs/TAHOE-USAGE.md)
 
 ## Troubleshooting
 
@@ -307,7 +297,9 @@ sudo -u tahoe tahoe ping-introducer
 - This setup doesn't use port forwarding, which improves security
 - All VPN traffic between nodes is encrypted
 - All stored data is encrypted end-to-end with Tahoe-LAFS
+- Using hostnames instead of hardcoded IPs allows for more flexibility with dynamic IPs
 - Multiple storage nodes provide redundancy against node failures
+- Web access is restricted to VPN traffic only
 
 ## License
 

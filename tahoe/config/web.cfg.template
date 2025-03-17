@@ -1,0 +1,55 @@
+[node]
+nickname = %NODE_NAME%-web
+# Web gateway interface - bind to VPN IP for security
+web.port = tcp:%WEB_PORT%:interface=%VPN_IP%
+web.static = public_html
+tub.port = tcp:3456:interface=%VPN_IP%
+tub.location = %VPN_IP%:3456
+
+[client]
+# Introducer to connect to
+introducer.furl = %INTRODUCER_FURL%
+
+# Redundancy parameters
+# shares.needed = how many shares needed to reconstruct the file
+# shares.happy = how many distinct servers we want to place shares on
+# shares.total = total number of shares to create
+shares.needed = 3
+shares.happy = 7
+shares.total = 10
+
+# Helper settings
+helper.enabled = false
+
+[storage]
+# Web gateways don't provide storage by default
+enabled = false
+
+[drop_upload]
+enabled = false
+
+# Web interface configuration
+[web]
+# Allow file uploads via web
+upload.enabled = true
+# Only allow web access from VPN
+allow.localhost = false
+# Use a 15-minute timeout
+timeout.default = 900
+
+# Enable different frontends
+[frontend.flogdir]
+root = "grid"
+path = "/flogs"
+enabled = true
+
+[frontend.static]
+root = "/home/tahoe/public_html"
+path = "/static"
+enabled = true
+
+[sftpd]
+enabled = false
+
+[ftpd]
+enabled = false

@@ -1,0 +1,33 @@
+[node]
+nickname = %NODE_NAME%-client
+web.port = tcp:3455:interface=%VPN_IP%
+tub.port = tcp:3456:interface=%VPN_IP%
+tub.location = %VPN_IP%:3456
+
+[client]
+# Introducer to connect to
+introducer.furl = %INTRODUCER_FURL%
+
+# Redundancy parameters
+# shares.needed = how many shares needed to reconstruct the file
+# shares.happy = how many distinct servers we want to place shares on
+# shares.total = total number of shares to create
+shares.needed = 3
+shares.happy = 7
+shares.total = 10
+
+# Helper settings
+helper.enabled = false
+
+[storage]
+# Client nodes don't provide storage by default
+enabled = false
+
+[drop_upload]
+enabled = false
+
+[sftpd]
+enabled = false
+
+[ftpd]
+enabled = false
