@@ -1,0 +1,16 @@
+[node]
+nickname = %NODE_NAME%-storage
+web.port = tcp:3455:interface=%VPN_IP%
+tub.port = tcp:3456:interface=%VPN_IP%
+tub.location = %VPN_IP%:3456
+
+[client]
+introducer.furl = %INTRODUCER_FURL%
+shares.needed = 3
+shares.happy = 5
+shares.total = 10
+
+[storage]
+enabled = true
+readonly = false
+reserved_space = %STORAGE_SIZE%

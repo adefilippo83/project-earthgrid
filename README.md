@@ -1,10 +1,11 @@
-# Project Earthgrid - tinc VPN Configuration
+# Project Earthgrid - Tinc VPN & Tahoe-LAFS Distributed Storage
 
-This repository contains centralized configuration management for a tinc VPN mesh network, primarily designed for Raspberry Pi devices behind NAT without requiring port forwarding.
+This repository contains centralized configuration management for a Tinc VPN mesh network with Tahoe-LAFS distributed storage capabilities, primarily designed for Raspberry Pi devices behind NAT without requiring port forwarding.
 
 ## Features
 
-- Centralized management of tinc VPN configuration
+### VPN Features
+- Centralized management of Tinc VPN configuration
 - Automatic NAT traversal setup (no port forwarding required)
 - Git-based version control for configuration and public keys
 - Support for full mesh network topology
@@ -12,11 +13,20 @@ This repository contains centralized configuration management for a tinc VPN mes
 - Hostname-based configuration for easier maintenance
 - Automated configuration updates via systemd timer
 
+### Storage Features
+- Secure, distributed storage across all nodes using Tahoe-LAFS
+- End-to-end encryption of all stored data
+- Redundant storage with configurable replication factors
+- Self-healing when nodes leave or rejoin the network
+- Web interface for easy file access
+- No single point of failure
+- Automatic integration with the VPN for security
+
 ## Repository Structure
 
 ```
 .
-├── tinc/                        # tinc VPN configuration directory
+├── tinc/                        # Tinc VPN configuration directory
 │   ├── config/                  # Configuration templates
 │   │   ├── tinc.conf.template   # Base tinc.conf template
 │   │   ├── tinc-up.template     # Base tinc-up script template
@@ -32,8 +42,32 @@ This repository contains centralized configuration management for a tinc VPN mes
 │   │   └── bootstrap.sh         # Bootstrap script for new nodes
 │   ├── inventory/
 │   │   └── nodes.yml            # Node inventory with IPs and details
+│   ├── systemd/
+│   │   ├── tinc-autoupdate.service # Systemd service for auto-updates
+│   │   └── tinc-autoupdate.timer   # Systemd timer for auto-updates
 │   └── docs/
 │       └── PR-PROCESS.md        # Documentation for the PR process
+├── tahoe/                       # Tahoe-LAFS configuration directory
+│   ├── config/                  # Configuration templates
+│   │   ├── introducer.cfg.template    # Template for introducer nodes
+│   │   ├── storage.cfg.template       # Template for storage nodes
+│   │   ├── client.cfg.template        # Template for client nodes
+│   │   └── web.cfg.template           # Template for web gateway configuration
+│   ├── scripts/
+│   │   ├── install-tahoe.sh           # Script to install Tahoe-LAFS
+│   │   ├── setup-tahoe-node.sh        # Script to set up a Tahoe node
+│   │   ├── update-tahoe-config.sh     # Script to update Tahoe configuration
+│   │   ├── bootstrap-tahoe-grid.sh    # Initialize the Tahoe grid (first-time setup)
+│   │   └── add-storage-node.sh        # Add a new storage node to the grid
+│   ├── systemd/
+│   │   ├── tahoe-introducer.service   # Systemd service for the introducer
+│   │   ├── tahoe-storage.service      # Systemd service for storage nodes
+│   │   ├── tahoe-client.service       # Systemd service for client nodes
+│   │   └── tahoe-web.service          # Systemd service for web gateway
+│   ├── inventory/
+│   │   └── tahoe-nodes.yml            # Tahoe node inventory with roles and details
+│   └── docs/
+│       └── TAHOE-USAGE.md             # Documentation on using the storage grid
 └── .github/
     ├── workflows/
     │   └── validate-pr.yml      # PR validation workflow
@@ -49,7 +83,9 @@ This repository contains centralized configuration management for a tinc VPN mes
 - Git installed on all devices
 - Basic understanding of Linux
 
-## Adding a New Node
+## Tinc VPN Setup
+
+### Adding a New Node
 
 Follow these steps to add a new node to the VPN network:
 
@@ -94,9 +130,73 @@ Follow these steps to add a new node to the VPN network:
 
 For more details on the PR process, see [tinc/docs/PR-PROCESS.md](tinc/docs/PR-PROCESS.md)
 
+## Tahoe-LAFS Storage Setup
+
+### Understanding Tahoe Roles
+
+Each node in your network can have one or more of these roles:
+
+1. **Introducer**: Acts as a discovery service helping nodes find each other (typically only need one)
+2. **Storage**: Contributes storage space to the grid
+3. **Client**: Allows access to read/write files on the grid
+4. **Web**: Provides a web interface to browse and manage files
+
+### Setting Up Tahoe-LAFS Grid
+
+1. Define your Tahoe node roles in the inventory:
+   ```bash
+   sudo nano tahoe/inventory/tahoe-nodes.yml
+   
+   # Add Tahoe roles to your nodes:
+   nodes:
+     - name: node1
+       tahoe_roles:
+         - introducer
+         - storage
+         - client
+         - web
+       tahoe_storage_size: 50GB
+       tahoe_web_port: 3456
+     
+     - name: node2
+       tahoe_roles:
+         - storage
+       tahoe_storage_size: 100GB
+   ```
+
+2. Bootstrap the Tahoe-LAFS grid from your introducer node:
+   ```bash
+   sudo tahoe/scripts/bootstrap-tahoe-grid.sh
+   ```
+
+3. Verify the grid is working:
+   ```bash
+   # On any client node
+   sudo -u tahoe tahoe create-alias grid
+   sudo -u tahoe tahoe mkdir grid:test
+   sudo -u tahoe echo "Hello Grid" > /tmp/test.txt
+   sudo -u tahoe tahoe put /tmp/test.txt grid:test/hello.txt
+   sudo -u tahoe tahoe get grid:test/hello.txt
+   ```
+
+### Adding Storage to an Existing Node
+
+If you have an existing node in the VPN and want to add storage capabilities:
+
+1. Update the Tahoe inventory file to include the node:
+   ```bash
+   sudo nano tahoe/inventory/tahoe-nodes.yml
+   # Add the node with appropriate roles
+   ```
+
+2. Run the setup script on the node:
+   ```bash
+   sudo tahoe/scripts/setup-tahoe-node.sh mynodename
+   ```
+
 ## Automated Configuration Updates
 
-The repository includes systemd service and timer files to automatically update your node's configuration from the repository. This ensures your node stays in sync with network changes without manual intervention.
+The repository includes systemd service and timer files to automatically update both VPN and storage configurations from the repository.
 
 To set up automated updates:
 
@@ -121,38 +221,52 @@ By default, the update service will run:
 - 5 minutes after system boot
 - Every 30 minutes thereafter
 
-To check the status of the automated update service:
+## Using the Distributed Storage
+
+### Command Line Access
+
+From any node with the client role:
+
 ```bash
-sudo systemctl status tinc-autoupdate.timer
-sudo systemctl list-timers --all
+# Create a new directory
+sudo -u tahoe tahoe mkdir grid:mydirectory
+
+# Upload a file
+sudo -u tahoe tahoe put /path/to/local/file.txt grid:mydirectory/file.txt
+
+# Download a file
+sudo -u tahoe tahoe get grid:mydirectory/file.txt /path/to/local/destination.txt
+
+# List contents of a directory
+sudo -u tahoe tahoe ls grid:mydirectory/
 ```
 
-To modify the update frequency, edit the timer file and change the `OnUnitActiveSec` value:
+### Web Interface Access
+
+If you have nodes with the web role enabled:
+
+1. Access the web interface at: `http://[node-vpn-ip]:3456/`
+2. You can browse, upload, and download files through this interface
+3. To access from outside the VPN, consider setting up a reverse proxy
+
+## Storage Grid Health
+
+To check the health of your storage grid:
+
 ```bash
-sudo nano /etc/systemd/system/tinc-autoupdate.timer
-# Change OnUnitActiveSec=30min to your desired interval
-# Then reload and restart:
-sudo systemctl daemon-reload
-sudo systemctl restart tinc-autoupdate.timer
+# On any client node
+sudo -u tahoe tahoe statistics gatherer-uri
+
+# Check storage status of the grid
+sudo -u tahoe tahoe status
+
+# Check disk usage
+sudo -u tahoe tahoe disk-usage
 ```
-
-## Adding a Public Node
-
-If you have access to a server with a public hostname (like a VPS), add it to your nodes:
-
-```yaml
-nodes:
-  - name: publicnode
-    vpn_ip: 172.16.0.254
-    hostname: publicnode.example.com
-    is_publicly_accessible: true
-```
-
-This will help nodes behind NAT to connect reliably.
 
 ## Troubleshooting
 
-### Checking VPN Status
+### VPN Issues
 
 On any node:
 
@@ -162,32 +276,38 @@ sudo journalctl -u tinc@pi-net
 sudo tincd -n pi-net -d5    # For debug output
 ```
 
-### Testing Connectivity
+### Storage Issues
 
-From any node, ping another node using its VPN IP:
-
-```bash
-ping 172.16.0.2  # Replace with another node's VPN IP
-```
-
-Or using hostname (if configured in /etc/hosts or DNS):
+On any node:
 
 ```bash
-ping node2.vpn   # If you've set up hostname resolution
+# Check Tahoe service status
+sudo systemctl status tahoe-storage
+sudo systemctl status tahoe-introducer
+sudo systemctl status tahoe-client
+sudo systemctl status tahoe-web
+
+# View logs
+sudo journalctl -u tahoe-storage
+sudo journalctl -u tahoe-introducer
+
+# Check connectivity to the introducer
+sudo -u tahoe tahoe ping-introducer
 ```
 
 ### Common Issues
 
 1. **Nodes can't connect**: Ensure all nodes have updated host files with the latest public keys.
-2. **Hostname resolution failures**: Make sure all hostnames used in configuration are resolvable or consider setting up an internal DNS.
-3. **Connection timeouts**: NAT traversal might be failing; consider adding a public node.
-4. **Git errors**: Check your git credentials and repository access.
+2. **Storage nodes not visible**: Check if the introducer is running and nodes can connect to it.
+3. **Cannot store/retrieve files**: Verify you have enough storage nodes online to satisfy the redundancy settings.
+4. **Connection timeouts**: NAT traversal might be failing; consider adding a public node.
 
 ## Security Considerations
 
 - This setup doesn't use port forwarding, which improves security
-- All traffic between nodes is encrypted
-- Using hostnames instead of hardcoded IPs allows for more flexibility with dynamic IPs
+- All VPN traffic between nodes is encrypted
+- All stored data is encrypted end-to-end with Tahoe-LAFS
+- Multiple storage nodes provide redundancy against node failures
 
 ## License
 

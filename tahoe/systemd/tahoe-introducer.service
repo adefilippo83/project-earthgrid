@@ -1,0 +1,13 @@
+[Unit]
+Description=Tahoe-LAFS Introducer
+After=network.target
+
+[Service]
+Type=simple
+User=tahoe
+Group=tahoe
+ExecStart=/usr/local/bin/tahoe start /opt/tahoe-lafs/introducer --nodaemon
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
