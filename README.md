@@ -80,6 +80,9 @@ Follow these steps to add a new node to the VPN network:
    ```bash
    sudo tinc/scripts/bootstrap.sh mynodename
    ```
+   When asked, use the following convention:
+   - Name the private key file as "id_rsa"
+   - Name the public key file as "id_rsa.pub"
 
 5. Commit your changes and push to the repository:
    ```bash
