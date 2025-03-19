@@ -4,10 +4,10 @@
 set -e
 
 # Check if running as root
-if [ "$(id -u)" -ne 0 ]; then
-   echo "This script must be run as root. Try 'sudo $0'"
-   exit 1
-fi
+# if [ "$(id -u)" -ne 0 ]; then
+#    echo "This script must be run as root. Try 'sudo $0'"
+#    exit 1
+# fi
 
 # Get node name from argument
 if [ -z "$1" ]; then
@@ -20,6 +20,18 @@ NETWORK_NAME="pi-net"
 TINC_DIR="/etc/tinc/$NETWORK_NAME"
 REPO_DIR="/opt/project-earthgrid"
 TINC_CONFIG_DIR="$REPO_DIR/tinc"
+REGENERATE_CERT=false
+
+# Check for parameters
+case "$2" in
+   -renew)
+      REGENERATE_CERT=true
+      echo "regenerate!"
+      ;;
+   *)
+   ##
+   ;;
+esac
 
 # Read configuration from nodes.yml
 if command -v python3 >/dev/null 2>&1; then
@@ -67,6 +79,11 @@ fi
 echo "Setting up node $NODE_NAME with VPN IP $VPN_IP"
 if [ -n "$HOSTNAME" ]; then
    echo "Using hostname: $HOSTNAME"
+fi
+
+# Regenerate the certificate
+if $application_enabled; then
+	sudo rm -rf "$TINC_DIR"
 fi
 
 # Create tinc.conf - first read the template
