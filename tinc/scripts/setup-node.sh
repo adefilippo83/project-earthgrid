@@ -128,9 +128,6 @@ done
 if [ ! -f "$TINC_DIR/rsa_key.priv" ] || ! grep -q "BEGIN RSA PRIVATE KEY" "$TINC_DIR/rsa_key.priv"; then
    echo "Generating new keys for $NODE_NAME..."
    
-   # Generate the private key
-   tincd -n "$NETWORK_NAME" --generate-keys=4096
-   
    # Now create the host file manually with proper subnet and hostname
    HOST_FILE="$TINC_DIR/hosts/$NODE_NAME"
    echo "# Host file for $NODE_NAME" > "$HOST_FILE"
@@ -143,7 +140,7 @@ if [ ! -f "$TINC_DIR/rsa_key.priv" ] || ! grep -q "BEGIN RSA PRIVATE KEY" "$TINC
    
    echo "Port = 655" >> "$HOST_FILE"
    
-   # Extract the public key from the private key and append to the host file
+   # Generate public key
    tincd -n "$NETWORK_NAME" -K < /dev/null
    
    # Copy to repo
