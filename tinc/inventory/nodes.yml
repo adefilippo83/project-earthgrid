@@ -6,3 +6,10 @@ nodes:
    vpn_ip: 172.16.0.1
    hostname: muflo.mynetgear.com
    is_publicly_accessible: true
+ - name: alessiocappe
+   vpn_ip: 172.16.0.2
+   hostname: alessiocappe.ptlug
+ - name: adefilippo
+   vpn_ip: 172.16.0.3
+   hostname: bs7ebf5.glddns.com
+   is_publicly_accessible: true
