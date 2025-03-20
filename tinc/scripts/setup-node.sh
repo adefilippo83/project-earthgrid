@@ -179,7 +179,7 @@ if ! grep -q "BEGIN RSA PUBLIC KEY" "$HOST_FILE"; then
 fi
 
 # Enable IP forwarding
-echo "net.ipv4.ip_forward=1" | tee -a /etc/sysctl.conf
-sysctl -p
+# echo "net.ipv4.ip_forward=1" | tee -a /etc/sysctl.conf
+# sysctl -p
 
 echo "Node $NODE_NAME setup complete!"
