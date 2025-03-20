@@ -4,10 +4,10 @@
 set -e
 
 # Check if running as root
-# if [ "$(id -u)" -ne 0 ]; then
-#    echo "This script must be run as root. Try 'sudo $0'"
-#    exit 1
-# fi
+if [ "$(id -u)" -ne 0 ]; then
+   echo "This script must be run as root. Try 'sudo $0'"
+   exit 1
+fi
 
 # Get node name from argument
 if [ -z "$1" ]; then
@@ -26,7 +26,6 @@ REGENERATE_CERT=false
 case "$2" in
    -renew)
       REGENERATE_CERT=true
-      echo "regenerate!"
       ;;
    *)
    ##
@@ -82,7 +81,7 @@ if [ -n "$HOSTNAME" ]; then
 fi
 
 # Regenerate the certificate
-if $application_enabled; then
+if $REGENERATE_CERT; then
 	sudo rm -rf "$TINC_DIR"
 fi
 
