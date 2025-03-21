@@ -20,6 +20,17 @@ NETWORK_NAME="pi-net"
 TINC_DIR="/etc/tinc/$NETWORK_NAME"
 REPO_DIR="/opt/project-earthgrid"
 TINC_CONFIG_DIR="$REPO_DIR/tinc"
+REGENERATE_CERT=false
+
+# Check for parameters
+case "$2" in
+   -renew)
+      REGENERATE_CERT=true
+      ;;
+   *)
+   ##
+   ;;
+esac
 
 # Read configuration from nodes.yml
 if command -v python3 >/dev/null 2>&1; then
@@ -67,6 +78,11 @@ fi
 echo "Setting up node $NODE_NAME with VPN IP $VPN_IP"
 if [ -n "$HOSTNAME" ]; then
    echo "Using hostname: $HOSTNAME"
+fi
+
+# Regenerate the certificate
+if $REGENERATE_CERT; then
+	sudo rm -rf "$TINC_DIR"
 fi
 
 # Create tinc.conf - first read the template
