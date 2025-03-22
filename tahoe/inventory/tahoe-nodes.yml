@@ -1,0 +1,11 @@
+nodes:
+  - name: node1
+    vpn_ip: 172.16.0.1
+    hostname: node1.example.com
+    tahoe_roles:
+      - introducer  # This will be our primary introducer
+      - storage
+      - client
+      - web
+    tahoe_storage_size: 1000GB  # Amount of storage to allocate
+    tahoe_web_port: 3456      # Port for web interface

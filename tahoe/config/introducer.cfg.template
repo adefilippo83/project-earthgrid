@@ -1,0 +1,14 @@
+[node]
+nickname = %NODE_NAME%-introducer
+web.port = tcp:3455:interface=%VPN_IP%
+tub.port = tcp:3456:interface=%VPN_IP%
+tub.location = %VPN_IP%:3456
+
+[client]
+introducer.furl = None
+
+[storage]
+enabled = false
+
+[drop_upload]
+enabled = false

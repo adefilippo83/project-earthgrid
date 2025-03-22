@@ -131,4 +131,9 @@ else
    echo "Configuration updated and service restarted."
 fi
 
+# Check if this node has Tahoe-LAFS roles and update those configurations
+if [ -f "$REPO_DIR/tahoe/inventory/tahoe-nodes.yml" ]; then
+    bash "$REPO_DIR/tahoe/scripts/update-tahoe-config.sh"
+fi
+
 echo "Update complete!"
