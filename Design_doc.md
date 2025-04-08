@@ -51,8 +51,6 @@ Performance will scale with hardware capabilities. The basic Raspberry Pi Zero c
 
 ### 3.2 System Architecture
 
-![System Architecture](diagram-architecture)
-
 ```mermaid
 graph TD
     subgraph "User Node"
@@ -146,8 +144,6 @@ All components will be deployed as Docker containers for consistency and isolati
 
 #### Network Topology
 
-![Network Topology](diagram-network-topology)
-
 ```mermaid
 graph TD
     subgraph "Internet"
@@ -214,8 +210,6 @@ graph TD
 ### 4.2 Erasure Coding
 
 #### 3-of-10 Scheme Implementation
-
-![Erasure Coding](diagram-erasure-coding)
 
 ```mermaid
 graph LR
@@ -382,8 +376,6 @@ graph LR
 
 ### 6.4 Node Bootstrap Process
 
-![Node Bootstrap Process](diagram-bootstrap-process)
-
 ```mermaid
 sequenceDiagram
     participant N as New Node
@@ -527,8 +519,6 @@ sequenceDiagram
   - CPU processing power for encryption/decryption
   - Available memory for caching operations
   - Number of concurrent operations
-
-![Performance Comparison](diagram-performance)
 
 ```mermaid
 graph LR
@@ -684,8 +674,6 @@ fi
 ```
 
 ### Appendix C: Resource Sizing Recommendations
-
-![Resource Sizing](diagram-resource-sizing)
 
 ```mermaid
 graph TD
