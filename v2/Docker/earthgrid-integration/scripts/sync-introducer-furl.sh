@@ -192,13 +192,13 @@ update_node_furl() {
   if [ ! -d "$node_dir" ]; then
     error "$node_type directory not found: $node_dir"
     return 1
-  }
+  fi
   
   local tahoe_cfg="$node_dir/tahoe.cfg"
   if [ ! -f "$tahoe_cfg" ]; then
     error "$node_type configuration not found: $tahoe_cfg"
     return 1
-  }
+  fi
   
   log "Updating $node_type with introducer FURL: $furl"
   
