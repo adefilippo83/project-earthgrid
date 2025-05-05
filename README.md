@@ -12,7 +12,42 @@ We've completely redesigned Project Earthgrid with a Docker-based architecture a
 
 Project Earthgrid creates a cooperative storage grid where participants simultaneously act as both clients and servers. Each node contributes to the network's overall storage capacity and resilience while maintaining the privacy of individual users' data.
 
-![Architecture Diagram](https://via.placeholder.com/800x400?text=Project+Earthgrid+Architecture)
+```mermaid
+graph TD
+    subgraph "User Node"
+        A[User Interface] --> B[Tahoe Client]
+        B --> C[Tinc VPN]
+    end
+    
+    subgraph "Storage Node 1"
+        D[Tinc VPN] --> E[Tahoe Storage]
+        E --> F[Local Storage]
+    end
+    
+    subgraph "Storage Node 2"
+        G[Tinc VPN] --> H[Tahoe Storage]
+        H --> I[Local Storage]
+    end
+    
+    subgraph "Storage Node 3"
+        J[Tinc VPN] --> K[Tahoe Storage]
+        K --> L[Local Storage]
+    end
+    
+    subgraph "Introducer Node"
+        M[Tinc VPN] --> N[Tahoe Introducer]
+    end
+    
+    C -->|Encrypted VPN| D
+    C -->|Encrypted VPN| G
+    C -->|Encrypted VPN| J
+    C -->|Encrypted VPN| M
+    
+    N -.->|Introduction Services| B
+    N -.->|Introduction Services| E
+    N -.->|Introduction Services| H
+    N -.->|Introduction Services| K
+```
 
 ### Key Features
 

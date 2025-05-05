@@ -2,6 +2,32 @@
 
 This guide provides step-by-step instructions for deploying a new node to the Project Earthgrid network.
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Local as Local System
+    participant GitHub as GitHub Repository
+    participant Network as Earthgrid Network
+    
+    User->>Local: Install Prerequisites
+    User->>Local: Clone Repository
+    User->>Local: Generate GPG Key
+    User->>GitHub: Fork Repository
+    User->>GitHub: Add Node to manifest.yaml
+    User->>GitHub: Create Pull Request
+    GitHub->>GitHub: Review & Approve PR
+    User->>Local: Configure Node Environment
+    User->>Local: Start Docker Containers
+    Local->>Network: Connect to Network
+    Network-->>Local: Authentication
+    Network-->>Local: Configuration Sync
+    User->>Local: Verify Connection
+    
+    Note over Local,Network: Ongoing Operations
+    Network-->>Local: Regular Config Updates
+    Local-->>Network: Health Status Updates
+```
+
 ## Prerequisites
 
 Before you begin, ensure you have:

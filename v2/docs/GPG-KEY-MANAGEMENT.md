@@ -2,6 +2,39 @@
 
 This document provides detailed instructions for managing GPG keys in the Project Earthgrid network. GPG keys are used for node authentication and security in the VPN mesh.
 
+```mermaid
+graph TB
+    subgraph "Authentication Process"
+        K[GPG Key Generation] --> PE[Public Key Export]
+        PE --> PR[Add to Manifest Repository]
+        K --> SE[Secret Key Export]
+        SE --> DS[Docker Secret]
+        
+        PR --> AU[Authentication]
+        DS --> AU
+        
+        AU --> C[Connection]
+        C --> |Success| CS[Connected State]
+        C --> |Failure| CF[Connection Failure]
+    end
+    
+    subgraph "Keys in Network"
+        G[GPG Key] --> PK[Public Key]
+        G --> SK[Secret Key]
+        
+        PK --> |Used by Other Nodes| V[Verify Signature]
+        SK --> |Used by Owner| S[Sign Messages]
+        
+        S --> SM[Signed Message]
+        SM --> V
+        V --> |Valid| TV[Trust Valid]
+        V --> |Invalid| TI[Trust Invalid]
+    end
+    
+    style G fill:#f9f,stroke:#333,stroke-width:2px
+    style AU fill:#9cf,stroke:#333,stroke-width:2px
+```
+
 ## Introduction to GPG in Earthgrid
 
 In Project Earthgrid, each node is identified by a unique GPG key. This key serves several purposes:

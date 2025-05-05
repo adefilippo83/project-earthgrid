@@ -6,6 +6,45 @@ This is the V2 implementation of Project Earthgrid, a distributed, encrypted sto
 
 Project Earthgrid creates a cooperative storage grid where participants simultaneously act as both clients and servers. Each node contributes to the network's overall storage capacity and resilience while maintaining the privacy of individual users' data.
 
+```mermaid
+graph TD
+    subgraph "Network Infrastructure"
+        VPN[Tinc VPN Mesh]
+        Manifest[Git Manifest Repository]
+        Discovery[Node Discovery Service]
+    end
+    
+    subgraph "Node 1"
+        N1_VPN[Tinc VPN Client] --- N1_GPG[GPG Authentication]
+        N1_VPN --> N1_Config[Config Sync]
+        N1_Config --> Manifest
+    end
+    
+    subgraph "Node 2"
+        N2_VPN[Tinc VPN Client] --- N2_GPG[GPG Authentication]
+        N2_VPN --> N2_Config[Config Sync]
+        N2_Config --> Manifest
+    end
+    
+    subgraph "Node 3"
+        N3_VPN[Tinc VPN Client] --- N3_GPG[GPG Authentication]
+        N3_VPN --> N3_Config[Config Sync]
+        N3_Config --> Manifest
+    end
+    
+    N1_VPN <-->|Encrypted Connection| N2_VPN
+    N1_VPN <-->|Encrypted Connection| N3_VPN
+    N2_VPN <-->|Encrypted Connection| N3_VPN
+    
+    Discovery --> N1_VPN
+    Discovery --> N2_VPN
+    Discovery --> N3_VPN
+    
+    Manifest -.->|Node Updates| Discovery
+    
+    classDef current fill:#f9f,stroke:#333,stroke-width:2px;
+```
+
 - **Decentralized Architecture**: No central authority or single point of failure
 - **End-to-End Encryption**: Data is encrypted before leaving the user's device
 - **GPG-Based Authentication**: Secure node authentication using GPG keys
@@ -77,6 +116,36 @@ To join an existing Earthgrid network:
 
 ## Container Details
 
+```mermaid
+graph TD
+    subgraph "Docker Environment"
+        subgraph "earthgrid-tinc Container"
+            TC[Tinc VPN] --- TS[Sync Daemon]
+            TS --- TG[GPG Auth Module]
+            TC --- TG
+        end
+        
+        subgraph "earthgrid-ui Container"
+            UI[Web Interface] --- API[Management API]
+        end
+    end
+    
+    subgraph "Host System"
+        V1[/etc/tinc Volume] --- TC
+        V2[GPG Keyring Volume] --- TG
+        V3[Manifest Volume] --- TS
+        UI --- V4[UI Data Volume]
+    end
+    
+    Internet((Internet)) --- TC
+    
+    classDef container fill:#e6f3ff,stroke:#333,stroke-width:1px;
+    classDef volume fill:#f9e79f,stroke:#333,stroke-width:1px;
+    
+    class TC,TS,TG,UI,API container;
+    class V1,V2,V3,V4 volume;
+```
+
 ### Tinc VPN Container
 
 The Tinc VPN container (`earthgrid-tinc`) is the core networking component:
@@ -101,6 +170,37 @@ The optional UI container (`earthgrid-ui`) provides:
 
 ## GPG Key Management
 
+```mermaid
+sequenceDiagram
+    participant User
+    participant Script as manage-gpg-keys.sh
+    participant GPG as GPG Keyring
+    participant Manifest as Manifest Repo
+    participant Node as Node Container
+    
+    User->>Script: generate key
+    Script->>GPG: Generate new GPG keypair
+    GPG-->>Script: Return Key ID
+    Script-->>User: Display Key ID
+    
+    User->>Script: export public key
+    Script->>GPG: Request public key
+    GPG-->>Script: Return public key
+    Script-->>User: Public key data
+    User->>Manifest: Add key to manifest.yaml
+    
+    User->>Script: export-private key
+    Script->>GPG: Request private key
+    GPG-->>Script: Return private key
+    Script-->>User: Private key file
+    User->>Node: Mount as Docker secret
+    
+    Note over User,Node: Authentication Flow
+    Node->>GPG: Use private key for signatures
+    Node->>Manifest: Fetch public keys of other nodes
+    Node->>Node: Verify signatures using public keys
+```
+
 GPG keys are central to the security model:
 
 1. **Generating keys**:
@@ -119,6 +219,37 @@ GPG keys are central to the security model:
    ```
 
 ## Manifest Configuration
+
+```mermaid
+flowchart TD
+    Manifest[Manifest Repository] --> |Contains| Network[Network Definition]
+    Manifest --> |Contains| NodeList[Node List]
+    
+    NodeList --> |Defines| Node1[Node 1]
+    NodeList --> |Defines| Node2[Node 2]
+    NodeList --> |Defines| Node3[Node 3]
+    
+    Node1 --> |Has| Props1[Properties]
+    Node2 --> |Has| Props2[Properties]
+    Node3 --> |Has| Props3[Properties]
+    
+    Props1 --> Name1[Name]
+    Props1 --> IP1[Internal IP]
+    Props1 --> PIP1[Public IP/Hostname]
+    Props1 --> GPG1[GPG Key ID]
+    Props1 --> Region1[Region]
+    Props1 --> Status1[Status]
+    Props1 --> Public1[Publicly Accessible]
+    
+    subgraph "Synchronization Process"
+        direction TB
+        GitRepo[GitHub Repository] --> |Pull| LocalRepo[Local Clone]
+        LocalRepo --> |Copy| ConfigFiles[Configuration Files]
+        ConfigFiles --> |Reload| TincVPN[Tinc VPN Service]
+    end
+    
+    style Manifest fill:#f9f,stroke:#333,stroke-width:2px
+```
 
 The manifest file (`manifest/manifest.yaml`) defines all nodes in the network:
 
