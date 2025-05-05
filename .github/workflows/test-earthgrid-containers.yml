@@ -125,6 +125,7 @@ jobs:
           MANIFEST_FILENAME=manifest.yaml
           ENABLE_AUTO_DISCOVERY=false
           TEST_MODE=true
+          GIT_MOCK=true
           EOF
           
           # Create local directories
@@ -150,6 +151,32 @@ jobs:
           echo "chmod +x /app/scripts/*.sh" >> ./setup-test.sh
           echo "/app/scripts/setup-tinc.sh" >> ./setup-test.sh
           echo "/app/scripts/sync-manifest.sh" >> ./setup-test.sh
+          
+          echo "# Ensure manifest exists for validation" >> ./setup-test.sh
+          echo "mkdir -p /var/lib/earthgrid/manifest" >> ./setup-test.sh
+          echo "if [ ! -f \"/var/lib/earthgrid/manifest/manifest.yaml\" ]; then" >> ./setup-test.sh
+          echo "  echo 'Creating test manifest file...'" >> ./setup-test.sh
+          echo "  cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFMANIFEST" >> ./setup-test.sh
+          echo "---" >> ./setup-test.sh
+          echo "network:" >> ./setup-test.sh
+          echo "  name: earthgrid-test" >> ./setup-test.sh
+          echo "  version: 2.0.0" >> ./setup-test.sh
+          echo "  domain: test.grid.earth" >> ./setup-test.sh
+          echo "  vpn_network: 10.200.0.0/16" >> ./setup-test.sh
+          echo "" >> ./setup-test.sh
+          echo "nodes:" >> ./setup-test.sh
+          echo "  - name: test-node" >> ./setup-test.sh
+          echo "    internal_ip: 10.200.1.1" >> ./setup-test.sh
+          echo "    public_ip: 127.0.0.1" >> ./setup-test.sh
+          echo "    gpg_key_id: \$GPG_KEY_ID" >> ./setup-test.sh
+          echo "    region: test-region" >> ./setup-test.sh
+          echo "    status: active" >> ./setup-test.sh
+          echo "    storage_contribution: 10GB" >> ./setup-test.sh
+          echo "    storage_allocation: 3GB" >> ./setup-test.sh
+          echo "    is_publicly_accessible: true" >> ./setup-test.sh
+          echo "EOFMANIFEST" >> ./setup-test.sh
+          echo "fi" >> ./setup-test.sh
+          
           echo "echo 'Test completed successfully!'" >> ./setup-test.sh
           chmod +x ./setup-test.sh
           

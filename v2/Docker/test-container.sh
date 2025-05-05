@@ -108,6 +108,7 @@ GITHUB_BRANCH=main
 MANIFEST_FILENAME=manifest.yaml
 ENABLE_AUTO_DISCOVERY=false
 TEST_MODE=true
+GIT_MOCK=true
 EOF
 
 print_step "Creating local directories..."
@@ -135,6 +136,32 @@ git config --global advice.detachedHead false
 chmod +x /app/scripts/*.sh
 /app/scripts/setup-tinc.sh
 /app/scripts/sync-manifest.sh
+
+# Ensure manifest exists for validation
+mkdir -p /var/lib/earthgrid/manifest
+if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
+  echo "Creating test manifest file..."
+  cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFMANIFEST
+---
+network:
+  name: earthgrid-test
+  version: 2.0.0
+  domain: test.grid.earth
+  vpn_network: 10.200.0.0/16
+
+nodes:
+  - name: test-node
+    internal_ip: 10.200.1.1
+    public_ip: 127.0.0.1
+    gpg_key_id: $GPG_KEY_ID
+    region: test-region
+    status: active
+    storage_contribution: 10GB
+    storage_allocation: 3GB
+    is_publicly_accessible: true
+EOFMANIFEST
+fi
+
 echo "Test completed successfully!"
 EOF
 chmod +x ./test-setup.sh

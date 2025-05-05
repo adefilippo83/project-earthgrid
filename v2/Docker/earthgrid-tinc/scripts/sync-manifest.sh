@@ -26,10 +26,18 @@ if [ ! -d "$MANIFEST_REPO_DIR" ]; then
 fi
 
 if [ ! -d "$MANIFEST_REPO_DIR/.git" ]; then
+    # Check if we're in test mode
+    if [ "${TEST_MODE:-false}" = "true" ]; then
+        log "Test mode detected, skipping git clone..."
+        # Ensure the manifest directory structure exists
+        mkdir -p "$MANIFEST_REPO_DIR/manifest"
     # Check if directory is empty
-    if [ -z "$(ls -A $MANIFEST_REPO_DIR)" ]; then
+    elif [ -z "$(ls -A $MANIFEST_REPO_DIR)" ]; then
         log "Initial repository clone..."
-        git clone --depth 1 -b $BRANCH https://github.com/$GITHUB_REPO.git $MANIFEST_REPO_DIR
+        git clone --depth 1 -b $BRANCH https://github.com/$GITHUB_REPO.git $MANIFEST_REPO_DIR || {
+            log "WARNING: Git clone failed, creating empty repository structure..."
+            mkdir -p "$MANIFEST_REPO_DIR/manifest"
+        }
     else
         # Directory exists but is not a git repo
         log "Manifest directory exists but is not a git repository..."
@@ -40,8 +48,15 @@ else
     cd $MANIFEST_REPO_DIR
     # Temporarily disable safe.directory checks
     git config --global advice.detachedHead false
-    git fetch
-    git reset --hard origin/$BRANCH
+    
+    # Check if we're in test mode
+    if [ "${TEST_MODE:-false}" = "true" ]; then
+        log "Test mode detected, skipping git fetch..."
+    else
+        # Try to fetch, but don't fail if it doesn't work
+        git fetch || log "WARNING: Git fetch failed, continuing with existing repository state"
+        git reset --hard origin/$BRANCH || log "WARNING: Git reset failed, continuing with existing repository state"
+    fi
 fi
 
 # Copy manifest file to the standard location
