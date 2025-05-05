@@ -463,19 +463,41 @@ jobs:
           chmod +x ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           
           # Create a more robust test version of the script
-          # Replace the check_vpn_interface function with a test version
-          sed -i '/^check_vpn_interface()/,/^}/c\
-check_vpn_interface() {\
-  log "TEST MODE: Skipping actual VPN interface check"\
-  return 0\
-}' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+          # Create replacement functions
+          cat > ./v2/Docker/data/test-integration/replacement_funcs.sh << 'EOF'
+check_vpn_interface() {
+  log "TEST MODE: Skipping actual VPN interface check"
+  return 0
+}
 
-          # Replace the check_connectivity function with a test version
-          sed -i '/^check_connectivity()/,/^}/c\
-check_connectivity() {\
-  log "TEST MODE: Skipping actual connectivity check"\
-  return 0\
-}' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+check_connectivity() {
+  log "TEST MODE: Skipping actual connectivity check"
+  return 0
+}
+EOF
+          
+          # Replace the functions using a different approach
+          vpn_func=$(grep -n "^check_vpn_interface()" ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | cut -d: -f1)
+          connect_func=$(grep -n "^check_connectivity()" ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | cut -d: -f1)
+          
+          # Get function end lines
+          vpn_end=$(tail -n +$vpn_func ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | grep -n "^}" | head -1 | cut -d: -f1)
+          connect_end=$(tail -n +$connect_func ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | grep -n "^}" | head -1 | cut -d: -f1)
+          
+          # Calculate line numbers
+          vpn_end=$(($vpn_func + $vpn_end - 1))
+          connect_end=$(($connect_func + $connect_end - 1))
+          
+          # Create a modified script
+          head -n $(($vpn_func - 1)) ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh > ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new
+          cat ./v2/Docker/data/test-integration/replacement_funcs.sh | head -n 4 >> ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new
+          tail -n +$(($vpn_end + 1)) ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | head -n $(($connect_func - $vpn_end - 1)) >> ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new
+          cat ./v2/Docker/data/test-integration/replacement_funcs.sh | tail -n 4 >> ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new
+          tail -n +$(($connect_end + 1)) ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh >> ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new
+          
+          # Replace the original script
+          mv ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh.new ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+          chmod +x ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           
           # Create a mock vpn status file
           mkdir -p ./v2/Docker/data/test-integration
@@ -857,15 +879,28 @@ check_connectivity() {\
           # Make script executable
           chmod +x ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
-          # Replace the extract_introducer_furl function with a test version
-          sed -i '
-          /^extract_introducer_furl()/,/^}/ c\
-extract_introducer_furl() {\
-  log "TEST MODE: Skipping actual FURL extraction"\
-  echo "pb://abc123@10.200.1.1:3458/introducer"\
-  return 0\
+          # Create a test version of the extract_introducer_furl function
+          cat > ./v2/Docker/data/test-tahoe/test_furl_func.sh << 'EOF'
+extract_introducer_furl() {
+  log "TEST MODE: Skipping actual FURL extraction"
+  echo "pb://abc123@10.200.1.1:3458/introducer"
+  return 0
 }
-          ' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+EOF
+          
+          # Find the extract_introducer_furl function and its end
+          furl_func=$(grep -n "^extract_introducer_furl()" ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh | cut -d: -f1)
+          furl_end=$(tail -n +$furl_func ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh | grep -n "^}" | head -1 | cut -d: -f1)
+          furl_end=$(($furl_func + $furl_end - 1))
+          
+          # Create a modified script
+          head -n $(($furl_func - 1)) ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh > ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh.new
+          cat ./v2/Docker/data/test-tahoe/test_furl_func.sh >> ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh.new
+          tail -n +$(($furl_end + 1)) ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh >> ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh.new
+          
+          # Replace the original script
+          mv ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh.new ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+          chmod +x ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
           # Verify the change
           grep -A 5 "extract_introducer_furl" ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
