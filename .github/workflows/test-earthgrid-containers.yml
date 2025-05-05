@@ -101,17 +101,15 @@ jobs:
           mkdir -p /tmp/earthgrid-integration
           cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
           
-          # Create a simple Dockerfile
-          cat > /tmp/earthgrid-integration/Dockerfile << EOF
-          FROM alpine:3.17
-
-          RUN apk add --no-cache bash curl jq iproute2 git gnupg
-
-          COPY scripts /usr/local/bin/
-          RUN chmod +x /usr/local/bin/*.sh
-
-          CMD ["/bin/bash"]
-          EOF
+          # Create a simple Dockerfile using echo commands to avoid heredoc issues
+          echo 'FROM alpine:3.17' > /tmp/earthgrid-integration/Dockerfile
+          echo '' >> /tmp/earthgrid-integration/Dockerfile
+          echo 'RUN apk add --no-cache bash curl jq iproute2 git gnupg' >> /tmp/earthgrid-integration/Dockerfile
+          echo '' >> /tmp/earthgrid-integration/Dockerfile
+          echo 'COPY scripts /usr/local/bin/' >> /tmp/earthgrid-integration/Dockerfile
+          echo 'RUN chmod +x /usr/local/bin/*.sh' >> /tmp/earthgrid-integration/Dockerfile
+          echo '' >> /tmp/earthgrid-integration/Dockerfile
+          echo 'CMD ["/bin/bash"]' >> /tmp/earthgrid-integration/Dockerfile
 
       - name: Build Integration container
         uses: docker/build-push-action@v4
@@ -142,16 +140,14 @@ jobs:
 
       - name: Create test GPG key
         run: |
-          # Create a batch file for GPG key generation
-          cat > /tmp/gpg-gen.batch << EOF
-          Key-Type: RSA
-          Key-Length: 2048
-          Name-Real: Test Node
-          Name-Email: test@example.com
-          Expire-Date: 0
-          %no-protection
-          %commit
-          EOF
+          # Create a batch file for GPG key generation using echo commands to avoid heredoc issues
+          echo 'Key-Type: RSA' > /tmp/gpg-gen.batch
+          echo 'Key-Length: 2048' >> /tmp/gpg-gen.batch
+          echo 'Name-Real: Test Node' >> /tmp/gpg-gen.batch
+          echo 'Name-Email: test@example.com' >> /tmp/gpg-gen.batch
+          echo 'Expire-Date: 0' >> /tmp/gpg-gen.batch
+          echo '%no-protection' >> /tmp/gpg-gen.batch
+          echo '%commit' >> /tmp/gpg-gen.batch
           
           # Generate the key
           gpg --batch --generate-key /tmp/gpg-gen.batch
@@ -183,43 +179,41 @@ jobs:
           # Create a .gitignore file
           echo "*.log" > .gitignore
           
-          # Create a simple test manifest
-          cat > ./manifest/manifest.yaml << EOF
-          ---
-          network:
-            name: earthgrid-test
-            version: 2.0.0
-            domain: test.grid.earth
-            vpn_network: 10.200.0.0/16
-            tahoe:
-              shares_needed: 3
-              shares_happy: 7
-              shares_total: 10
-              reserved_space: 50G
-          
-          introducer_furl: null
-          
-          nodes:
-            - name: test-node
-              internal_ip: 10.200.1.1
-              public_ip: auto
-              gpg_key_id: ${{ env.GPG_KEY_ID }}
-              region: test-region
-              status: active
-              storage_contribution: 10GB
-              storage_allocation: 3GB
-              is_publicly_accessible: true
-              roles:
-                - tinc_vpn
-                - tahoe_storage
-                - tahoe_client
-                - tahoe_introducer
-              ports:
-                tinc: 655
-                tahoe_storage: 3457
-                tahoe_client: 3456
-                tahoe_introducer: 3458
-          EOF
+          # Create a simple test manifest using echo commands to avoid heredoc issues
+          echo '---' > ./manifest/manifest.yaml
+          echo 'network:' >> ./manifest/manifest.yaml
+          echo '  name: earthgrid-test' >> ./manifest/manifest.yaml
+          echo '  version: 2.0.0' >> ./manifest/manifest.yaml
+          echo '  domain: test.grid.earth' >> ./manifest/manifest.yaml
+          echo '  vpn_network: 10.200.0.0/16' >> ./manifest/manifest.yaml
+          echo '  tahoe:' >> ./manifest/manifest.yaml
+          echo '    shares_needed: 3' >> ./manifest/manifest.yaml
+          echo '    shares_happy: 7' >> ./manifest/manifest.yaml
+          echo '    shares_total: 10' >> ./manifest/manifest.yaml
+          echo '    reserved_space: 50G' >> ./manifest/manifest.yaml
+          echo '' >> ./manifest/manifest.yaml
+          echo 'introducer_furl: null' >> ./manifest/manifest.yaml
+          echo '' >> ./manifest/manifest.yaml
+          echo 'nodes:' >> ./manifest/manifest.yaml
+          echo '  - name: test-node' >> ./manifest/manifest.yaml
+          echo '    internal_ip: 10.200.1.1' >> ./manifest/manifest.yaml
+          echo "    public_ip: auto" >> ./manifest/manifest.yaml
+          echo "    gpg_key_id: \${{ env.GPG_KEY_ID }}" >> ./manifest/manifest.yaml
+          echo '    region: test-region' >> ./manifest/manifest.yaml
+          echo '    status: active' >> ./manifest/manifest.yaml
+          echo '    storage_contribution: 10GB' >> ./manifest/manifest.yaml
+          echo '    storage_allocation: 3GB' >> ./manifest/manifest.yaml
+          echo '    is_publicly_accessible: true' >> ./manifest/manifest.yaml
+          echo '    roles:' >> ./manifest/manifest.yaml
+          echo '      - tinc_vpn' >> ./manifest/manifest.yaml
+          echo '      - tahoe_storage' >> ./manifest/manifest.yaml
+          echo '      - tahoe_client' >> ./manifest/manifest.yaml
+          echo '      - tahoe_introducer' >> ./manifest/manifest.yaml
+          echo '    ports:' >> ./manifest/manifest.yaml
+          echo '      tinc: 655' >> ./manifest/manifest.yaml
+          echo '      tahoe_storage: 3457' >> ./manifest/manifest.yaml
+          echo '      tahoe_client: 3456' >> ./manifest/manifest.yaml
+          echo '      tahoe_introducer: 3458' >> ./manifest/manifest.yaml
 
           # Commit the manifest file
           git add manifest .gitignore
@@ -227,20 +221,18 @@ jobs:
 
       - name: Run container in test mode
         run: |
-          # Create test environment file
-          cat > ./v2/Docker/.env.test << EOF
-          NODE_NAME=test-node
-          INTERNAL_VPN_IP=10.200.1.1
-          PUBLIC_IP=127.0.0.1
-          GPG_KEY_ID=${{ env.GPG_KEY_ID }}
-          GITHUB_REPO=test/repo
-          GITHUB_BRANCH=main
-          MANIFEST_FILENAME=manifest.yaml
-          ENABLE_AUTO_DISCOVERY=false
-          TEST_MODE=true
-          GIT_MOCK=true
-          CONTAINER_TYPE=tinc
-          EOF
+          # Create test environment file using echo commands to avoid heredoc issues
+          echo 'NODE_NAME=test-node' > ./v2/Docker/.env.test
+          echo 'INTERNAL_VPN_IP=10.200.1.1' >> ./v2/Docker/.env.test
+          echo 'PUBLIC_IP=127.0.0.1' >> ./v2/Docker/.env.test
+          echo "GPG_KEY_ID=\${{ env.GPG_KEY_ID }}" >> ./v2/Docker/.env.test
+          echo 'GITHUB_REPO=test/repo' >> ./v2/Docker/.env.test
+          echo 'GITHUB_BRANCH=main' >> ./v2/Docker/.env.test
+          echo 'MANIFEST_FILENAME=manifest.yaml' >> ./v2/Docker/.env.test
+          echo 'ENABLE_AUTO_DISCOVERY=false' >> ./v2/Docker/.env.test
+          echo 'TEST_MODE=true' >> ./v2/Docker/.env.test
+          echo 'GIT_MOCK=true' >> ./v2/Docker/.env.test
+          echo 'CONTAINER_TYPE=tinc' >> ./v2/Docker/.env.test
           
           # Create local directories
           mkdir -p ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest
@@ -336,17 +328,15 @@ jobs:
           # Stop and remove the container
           docker rm -f earthgrid-tinc-test || true
           
-          # Create a cleanup script to deal with permission issues
-          cat > ./cleanup.sh << EOF
-          #!/bin/bash
-          set -e
-          
-          # Use a temporary container to fix permissions and clean up
-          docker run --rm -v $(pwd)/v2/Docker/data:/data -v $(pwd)/v2/Docker/secrets:/secrets \
-            --entrypoint /bin/bash \
-            alpine:latest \
-            -c "rm -rf /data/tinc /data/gnupg /data/logs /data/manifest-repo /data/manifest /secrets"
-          EOF
+          # Create a cleanup script to deal with permission issues using echo commands to avoid heredoc issues
+          echo '#!/bin/bash' > ./cleanup.sh
+          echo 'set -e' >> ./cleanup.sh
+          echo '' >> ./cleanup.sh
+          echo '# Use a temporary container to fix permissions and clean up' >> ./cleanup.sh
+          echo 'docker run --rm -v $(pwd)/v2/Docker/data:/data -v $(pwd)/v2/Docker/secrets:/secrets \\' >> ./cleanup.sh
+          echo '  --entrypoint /bin/bash \\' >> ./cleanup.sh
+          echo '  alpine:latest \\' >> ./cleanup.sh
+          echo '  -c "rm -rf /data/tinc /data/gnupg /data/logs /data/manifest-repo /data/manifest /secrets"' >> ./cleanup.sh
           chmod +x ./cleanup.sh
           
           # Run the cleanup script
@@ -799,61 +789,64 @@ jobs:
           # Create mock config files for testing instead of relying on Tahoe-LAFS
           mkdir -p ./v2/Docker/data/test-tahoe/{tahoe-introducer,tahoe-client,tahoe-storage,logs,manifest,network-config}
           
-          # Create a mock tahoe.cfg file for testing
-          cat > ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg << EOF
-          # This is a mock Tahoe-LAFS introducer configuration file for testing
-          [node]
-          nickname = test-introducer
-          web.port = 3456
-          web.static = public_html
-          tub.port = 3458
-          tub.location = 10.200.1.1:3458
+          # Create a mock tahoe.cfg file for testing using echo to avoid heredoc issues
+          # Header comment
+          echo "# This is a mock Tahoe-LAFS introducer configuration file for testing" > ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Node section
+          echo "[node]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "nickname = test-introducer" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "web.port = 3456" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "web.static = public_html" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "tub.port = 3458" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "tub.location = 10.200.1.1:3458" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Client section
+          echo "[client]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "introducer.furl = " >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "helper.furl = " >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "shares.needed = 3" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "shares.happy = 7" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "shares.total = 10" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Storage section
+          echo "[storage]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "enabled = false" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Helper section
+          echo "[helper]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "enabled = false" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Drop upload section
+          echo "[drop_upload]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "enabled = false" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          # Stats gatherer section
+          echo "[stats_gatherer]" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
+          echo "enabled = false" >> ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg
           
-          [client]
-          introducer.furl = 
-          helper.furl = 
-          shares.needed = 3
-          shares.happy = 7
-          shares.total = 10
-          
-          [storage]
-          enabled = false
-          
-          [helper]
-          enabled = false
-          
-          [drop_upload]
-          enabled = false
-          
-          [stats_gatherer]
-          enabled = false
-          EOF
-          
-          # Create a mock manifest file
-          cat > ./v2/Docker/data/test-tahoe/manifest/manifest.yaml << EOF
-          ---
-          network:
-            name: earthgrid-test
-            version: 2.0.0
-            domain: test.grid.earth
-            vpn_network: 10.200.0.0/16
-            tahoe:
-              shares_needed: 3
-              shares_happy: 7
-              shares_total: 10
-              reserved_space: 50G
-          
-          introducer_furl: null
-          
-          nodes:
-            - name: test-node1
-              internal_ip: 10.200.1.1
-              vpn_ip: 10.200.1.1
-              status: active
-              roles:
-                - tinc_vpn
-                - tahoe_introducer
-          EOF
+          # Create a mock manifest file using echo to avoid heredoc issues
+          echo "---" > ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "network:" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  name: earthgrid-test" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  version: 2.0.0" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  domain: test.grid.earth" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  vpn_network: 10.200.0.0/16" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  tahoe:" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    shares_needed: 3" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    shares_happy: 7" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    shares_total: 10" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    reserved_space: 50G" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "introducer_furl: null" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "nodes:" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "  - name: test-node1" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    internal_ip: 10.200.1.1" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    vpn_ip: 10.200.1.1" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    status: active" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "    roles:" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "      - tinc_vpn" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
+          echo "      - tahoe_introducer" >> ./v2/Docker/data/test-tahoe/manifest/manifest.yaml
           
           # Verify that we have the mock config file
           if [ ! -f "./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg" ]; then
@@ -987,14 +980,12 @@ jobs:
           if [[ "$(docker images -q earthgrid/integration:test 2> /dev/null)" == "" ]]; then
             mkdir -p /tmp/earthgrid-integration
             cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
-            # Note the indentation for the Dockerfile here - making it flat to avoid heredoc issues
-            cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
-FROM alpine:3.17
-RUN apk add --no-cache bash curl jq iproute2 git gnupg
-COPY scripts /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
-CMD ["/bin/bash"]
-EOF
+            # Create Dockerfile using echo to avoid heredoc issues
+            echo 'FROM alpine:3.17' > /tmp/earthgrid-integration/Dockerfile
+            echo 'RUN apk add --no-cache bash curl jq iproute2 git gnupg' >> /tmp/earthgrid-integration/Dockerfile
+            echo 'COPY scripts /usr/local/bin/' >> /tmp/earthgrid-integration/Dockerfile
+            echo 'RUN chmod +x /usr/local/bin/*.sh' >> /tmp/earthgrid-integration/Dockerfile
+            echo 'CMD ["/bin/bash"]' >> /tmp/earthgrid-integration/Dockerfile
             docker build -t earthgrid/integration:test /tmp/earthgrid-integration
           fi
           
@@ -1002,61 +993,57 @@ EOF
           cp ./v2/Docker/earthgrid-integration/scripts/sync-introducer-furl.sh ./v2/Docker/data/test-tahoe/sync-script.sh
           chmod +x ./v2/Docker/data/test-tahoe/sync-script.sh
           
-          # Create an entrypoint script for testing
-          cat > ./v2/Docker/data/test-tahoe/sync-entrypoint.sh << EOF
-          #!/bin/bash
-          set -ex
-          
-          # Print environment for debugging
-          echo "Environment variables:"
-          env | sort
-          
-          # Check if script exists and is executable
-          if [ ! -f "/usr/local/bin/sync-introducer-furl.sh" ]; then
-            echo "ERROR: Script /usr/local/bin/sync-introducer-furl.sh not found!"
-            ls -la /usr/local/bin/
-            exit 1
-          fi
-          
-          if [ ! -x "/usr/local/bin/sync-introducer-furl.sh" ]; then
-            echo "Making script executable"
-            chmod +x /usr/local/bin/sync-introducer-furl.sh
-          fi
-          
-          # Make required directories
-          mkdir -p /var/lib/earthgrid/manifest /var/log/earthgrid /var/lib/tahoe-introducer /var/lib/tahoe-introducer/private
-          
-          # Create a dummy introducer.furl file if needed
-          if [ ! -f "/var/lib/tahoe-introducer/private/introducer.furl" ]; then
-            echo "Creating dummy introducer.furl file"
-            echo "pb://abc123@10.200.1.1:3458/introducer" > /var/lib/tahoe-introducer/private/introducer.furl
-          fi
-          
-          # Create a simple dummy manifest file if it doesn't exist
-          if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
-            echo "Creating dummy manifest file for testing"
-            cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFINNER
-          ---
-          network:
-            name: earthgrid-test
-            version: 2.0.0
-            domain: test.grid.earth
-            vpn_network: 10.200.0.0/16
-          
-          nodes:
-            - name: test-node1
-              internal_ip: 10.200.1.1
-              vpn_ip: 10.200.1.1
-              roles:
-                - tinc_vpn
-                - tahoe_introducer
-          EOFINNER
-          fi
-          
-          # Run the actual test with debug output
-          echo "Running sync script..."
-          bash -x /usr/local/bin/sync-introducer-furl.sh
-          EOF
+          # Create an entrypoint script for testing without using heredocs
+          echo '#!/bin/bash' > ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'set -ex' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Print environment for debugging' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'echo "Environment variables:"' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'env | sort' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Check if script exists and is executable' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'if [ ! -f "/usr/local/bin/sync-introducer-furl.sh" ]; then' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "ERROR: Script /usr/local/bin/sync-introducer-furl.sh not found!"' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  ls -la /usr/local/bin/' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  exit 1' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'fi' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'if [ ! -x "/usr/local/bin/sync-introducer-furl.sh" ]; then' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "Making script executable"' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  chmod +x /usr/local/bin/sync-introducer-furl.sh' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'fi' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Make required directories' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'mkdir -p /var/lib/earthgrid/manifest /var/log/earthgrid /var/lib/tahoe-introducer /var/lib/tahoe-introducer/private' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Create a dummy introducer.furl file if needed' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'if [ ! -f "/var/lib/tahoe-introducer/private/introducer.furl" ]; then' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "Creating dummy introducer.furl file"' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "pb://abc123@10.200.1.1:3458/introducer" > /var/lib/tahoe-introducer/private/introducer.furl' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'fi' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Create a simple dummy manifest file if it does not exist' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "Creating dummy manifest file for testing"' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "---" > /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "network:" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "  name: earthgrid-test" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "  version: 2.0.0" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "  domain: test.grid.earth" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "  vpn_network: 10.200.0.0/16" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "nodes:" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "  - name: test-node1" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "    internal_ip: 10.200.1.1" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "    vpn_ip: 10.200.1.1" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "    roles:" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "      - tinc_vpn" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '  echo "      - tahoe_introducer" >> /var/lib/earthgrid/manifest/manifest.yaml' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'fi' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo '# Run the actual test with debug output' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'echo "Running sync script..."' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
+          echo 'bash -x /usr/local/bin/sync-introducer-furl.sh' >> ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
           
           # Make entrypoint executable
           chmod +x ./v2/Docker/data/test-tahoe/sync-entrypoint.sh
