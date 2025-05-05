@@ -93,6 +93,23 @@ EOF
 print_step "Creating local directories..."
 mkdir -p ./test-data/tinc ./test-data/logs
 
+print_step "Preparing test script..."
+cat > ./test-setup.sh << EOF
+#!/bin/bash
+set -e
+
+# First import the GPG key properly
+gpg --batch --import /run/secrets/gpg_private_key
+chmod 700 /root/.gnupg
+
+# Run the setup scripts
+chmod +x /app/scripts/*.sh
+/app/scripts/setup-tinc.sh
+/app/scripts/sync-manifest.sh
+echo "Test completed successfully!"
+EOF
+chmod +x ./test-setup.sh
+
 print_step "Running container in test mode..."
 docker run --name earthgrid-tinc-test --cap-add=NET_ADMIN \
   --env-file ./.env.test \
@@ -102,9 +119,10 @@ docker run --name earthgrid-tinc-test --cap-add=NET_ADMIN \
   -v "$(pwd)/test-data/manifest-repo:/var/lib/earthgrid/manifest-repo" \
   -v "$(pwd)/test-data/manifest:/var/lib/earthgrid/manifest" \
   -v "$(pwd)/test-secrets/gpg_private_key.asc:/run/secrets/gpg_private_key" \
+  -v "$(pwd)/test-setup.sh:/test-setup.sh" \
   --entrypoint /bin/bash \
   earthgrid/tinc:test \
-  -c "set -e; chmod +x /app/scripts/*.sh; /app/scripts/setup-tinc.sh && /app/scripts/sync-manifest.sh && echo 'Test completed successfully!'"
+  -c "/test-setup.sh"
 
 print_step "Verifying test results..."
 docker cp earthgrid-tinc-test:/etc/tinc/earthgrid/tinc.conf ./test-data/tinc.conf

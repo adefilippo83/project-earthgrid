@@ -113,6 +113,19 @@ jobs:
           # Create local directories
           mkdir -p ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest
           
+          # Prepare docker command
+          echo "#!/bin/bash" > ./setup-test.sh
+          echo "set -e" >> ./setup-test.sh
+          echo "# Import GPG key" >> ./setup-test.sh
+          echo "gpg --batch --import /run/secrets/gpg_private_key" >> ./setup-test.sh
+          echo "chmod 700 /root/.gnupg" >> ./setup-test.sh
+          echo "# Run setup scripts" >> ./setup-test.sh
+          echo "chmod +x /app/scripts/*.sh" >> ./setup-test.sh
+          echo "/app/scripts/setup-tinc.sh" >> ./setup-test.sh
+          echo "/app/scripts/sync-manifest.sh" >> ./setup-test.sh
+          echo "echo 'Test completed successfully!'" >> ./setup-test.sh
+          chmod +x ./setup-test.sh
+          
           # Run container in test mode with simplified entrypoint
           docker run --name earthgrid-tinc-test --cap-add=NET_ADMIN \
             --env-file ./v2/Docker/.env.test \
@@ -122,9 +135,10 @@ jobs:
             -v $(pwd)/v2/Docker/data/manifest-repo:/var/lib/earthgrid/manifest-repo \
             -v $(pwd)/v2/Docker/data/manifest:/var/lib/earthgrid/manifest \
             -v $(pwd)/v2/Docker/secrets/gpg_private_key.asc:/run/secrets/gpg_private_key \
+            -v $(pwd)/setup-test.sh:/setup-test.sh \
             --entrypoint /bin/bash \
             earthgrid/tinc:test \
-            -c "set -e; chmod +x /app/scripts/*.sh; /app/scripts/setup-tinc.sh && /app/scripts/sync-manifest.sh && echo 'Test completed successfully!'"
+            -c "/setup-test.sh"
           
           # Verify that key files were created
           docker cp earthgrid-tinc-test:/etc/tinc/earthgrid/tinc.conf ./tinc.conf

@@ -31,6 +31,18 @@ fi
 
 # Verify the presence of GPG key
 log "Verifying GPG key with ID: $GPG_KEY_ID"
+
+# Fix permissions on gpg home
+if [ -d "/root/.gnupg" ]; then
+    chmod 700 /root/.gnupg
+    if [ -f "/root/.gnupg/gpg.conf" ]; then
+        chmod 600 /root/.gnupg/gpg.conf
+    fi
+    if [ -f "/root/.gnupg/private-keys-v1.d" ]; then
+        chmod 700 /root/.gnupg/private-keys-v1.d
+    fi
+fi
+
 if ! gpg --list-keys "$GPG_KEY_ID" > /dev/null 2>&1; then
     # If key provided as environment variable
     if [ ! -z "$GPG_PRIVATE_KEY" ]; then

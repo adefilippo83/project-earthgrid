@@ -60,7 +60,15 @@ if [ ! -f /etc/tinc/earthgrid/rsa_key.priv ]; then
         chmod 600 /etc/tinc/earthgrid/rsa_key.priv
     else
         log "Generating new 4096-bit RSA key for Tinc..."
-        tincd -n earthgrid -K4096
+        # First create the key in the correct format
+        openssl genrsa -out /etc/tinc/earthgrid/rsa_key.priv 4096
+        chmod 600 /etc/tinc/earthgrid/rsa_key.priv
+        # Generate the public key
+        openssl rsa -in /etc/tinc/earthgrid/rsa_key.priv -pubout > /etc/tinc/earthgrid/rsa_key.pub
+        # Add the key to the host file
+        echo "-----BEGIN RSA PUBLIC KEY-----" >> /etc/tinc/earthgrid/hosts/${NODE_NAME}
+        cat /etc/tinc/earthgrid/rsa_key.pub | grep -v "PUBLIC KEY" >> /etc/tinc/earthgrid/hosts/${NODE_NAME}
+        echo "-----END RSA PUBLIC KEY-----" >> /etc/tinc/earthgrid/hosts/${NODE_NAME}
     fi
 fi
 
