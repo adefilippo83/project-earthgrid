@@ -116,12 +116,12 @@ update_manifest_furl() {
   if [ -z "$furl" ]; then
     error "No FURL provided to update manifest"
     return 1
-  }
+  fi
   
   if [ ! -f "$MANIFEST_FILE" ]; then
     error "Manifest file not found: $MANIFEST_FILE"
     return 1
-  }
+  fi
   
   log "Updating manifest with introducer FURL"
   

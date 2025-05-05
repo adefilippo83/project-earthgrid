@@ -183,12 +183,12 @@ check_tahoe_config() {
   if [ ! -d "$node_dir" ]; then
     error "Tahoe node directory not found: $node_dir"
     return 1
-  }
+  fi
   
   if [ ! -f "$node_dir/tahoe.cfg" ]; then
     error "Tahoe configuration not found: $node_dir/tahoe.cfg"
     return 1
-  }
+  fi
   
   log "Tahoe $CONTAINER_TYPE node configuration exists"
   return 0
