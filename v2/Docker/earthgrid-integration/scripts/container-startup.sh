@@ -131,7 +131,8 @@ wait_for_introducer_furl() {
     
     # Then check manifest
     if [ -f "$MANIFEST_DIR/manifest.yaml" ]; then
-      local furl=$(grep -oP "^introducer_furl:\s*\K.*" "$MANIFEST_DIR/manifest.yaml")
+      local furl
+      furl=$(grep -oP "^introducer_furl:\s*\K.*" "$MANIFEST_DIR/manifest.yaml")
       if [ -n "$furl" ] && [ "$furl" != "null" ]; then
         log "Introducer FURL found in manifest"
         return 0

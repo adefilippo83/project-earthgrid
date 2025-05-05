@@ -157,9 +157,10 @@ get_manifest_furl() {
   if [ ! -f "$MANIFEST_FILE" ]; then
     error "Manifest file not found: $MANIFEST_FILE"
     return 1
-  }
+  fi
   
-  local furl=$(grep -oP "^introducer_furl:\s*\K.*" "$MANIFEST_FILE")
+  local furl
+  furl=$(grep -oP "^introducer_furl:\s*\K.*" "$MANIFEST_FILE")
   if [ -z "$furl" ] || [ "$furl" = "null" ]; then
     error "No introducer FURL found in manifest"
     return 1
