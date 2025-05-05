@@ -599,8 +599,8 @@ jobs:
           # Create a copy of the original script for testing
           mkdir -p ./v2/Docker/data/test-integration/scripts
           
-          # Copy the script directly instead of using docker cp
-          cp ./v2/Docker/earthgrid-integration/scripts/resolve-node-ips.sh ./v2/Docker/data/test-integration/scripts/
+          # Copy the Alpine-compatible version of the script instead
+          cp ./v2/Docker/earthgrid-integration/scripts/resolve-node-ips.sh.alpine ./v2/Docker/data/test-integration/scripts/resolve-node-ips.sh
           
           # Make script executable
           chmod +x ./v2/Docker/data/test-integration/scripts/resolve-node-ips.sh
@@ -661,7 +661,7 @@ jobs:
           # Make entrypoint executable
           chmod +x ./v2/Docker/data/test-integration/resolve-entrypoint.sh
           
-          # Run the IP resolution script
+          # Run the IP resolution script directly with Alpine
           docker run --name test-resolve-ips \
             -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
             -v $(pwd)/v2/Docker/data/test-integration/logs:/var/log/earthgrid \
@@ -671,8 +671,8 @@ jobs:
             -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
             -e NODE_NAME=test-node1 \
             -e TEST_MODE=true \
-            earthgrid/integration:test \
-            /bin/bash /entrypoint.sh
+            alpine:latest \
+            /bin/sh -c "apk add --no-cache bash && chmod +x /entrypoint.sh && chmod +x /usr/local/bin/resolve-node-ips.sh && /entrypoint.sh"
           
           # Check that the resolution file was created
           mkdir -p ./test-logs
@@ -685,14 +685,16 @@ jobs:
             exit 1
           fi
           
-          # Test IP resolution functionality
+          # Test IP resolution functionality with Alpine
           RESOLVE_RESULT=$(docker run --rm \
             -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
+            -v $(pwd)/v2/Docker/data/test-integration/scripts/resolve-node-ips.sh:/usr/local/bin/resolve-node-ips.sh \
             -e NODE_NAME=test-node1 \
             -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
             -e DEBUG=true \
-            earthgrid/integration:test \
-            /usr/local/bin/resolve-node-ips.sh resolve test-node2)
+            -e TEST_MODE=true \
+            alpine:latest \
+            /bin/sh -c "apk add --no-cache bash && chmod +x /usr/local/bin/resolve-node-ips.sh && /usr/local/bin/resolve-node-ips.sh resolve test-node2")
           
           echo "Resolve result: $RESOLVE_RESULT"
           

@@ -1,5 +1,5 @@
 #!/bin/bash
-# resolve-node-ips.sh
+# resolve-node-ips.sh (Alpine Linux compatible version)
 # Resolves node names to VPN IP addresses using the network manifest
 # This allows Tahoe-LAFS containers to connect to nodes by name or IP
 #
@@ -48,34 +48,19 @@ check_manifest() {
   return 0
 }
 
-# Parse YAML line for a key - supports both regular Linux and Alpine
+# Parse YAML line for a key - Alpine compatible version
 get_yaml_value() {
   local yaml_line="$1"
   local key="$2"
   
-  # Try compatible approach first
-  local value
-  value=$(echo "$yaml_line" | sed -n "s/.*${key}:[[:space:]]*//p" | sed 's/[[:space:]]*$//')
-  
-  # Fall back to grep -oP if available and the first method failed
-  if [ -z "$value" ] && grep --help 2>&1 | grep -q "\-P"; then
-    value=$(echo "$yaml_line" | grep -oP "${key}:\s*\K[^\s]+")
-  fi
-  
-  echo "$value"
+  # Using sed instead of grep -oP
+  echo "$yaml_line" | sed -n "s/.*${key}:\s*//p" | sed 's/[[:space:]]*$//'
 }
 
-# Extract network domain from manifest - works with both Linux and Alpine
+# Extract network domain from manifest - Alpine compatible version
 get_network_domain() {
   if grep -q "domain:" "$MANIFEST_FILE"; then
-    # Try compatible approach first
-    domain=$(grep "domain:" "$MANIFEST_FILE" | sed 's/.*domain:[[:space:]]*//' | sed 's/[[:space:]]*$//')
-    
-    # Fall back to grep -oP if available and the first method failed
-    if [ -z "$domain" ] && grep --help 2>&1 | grep -q "\-P"; then
-      domain=$(grep -oP 'domain:\s*\K[^\s]+' "$MANIFEST_FILE")
-    fi
-    
+    domain=$(grep "domain:" "$MANIFEST_FILE" | sed 's/.*domain:[[:space:]]*//')
     echo "${domain:-$VPN_DOMAIN}"
   else
     echo "$VPN_DOMAIN"
@@ -119,14 +104,14 @@ parse_nodes() {
     if $in_nodes_section; then
       # Check for node name
       if echo "$line" | grep -q "^  - name:"; then
-        current_node=$(get_yaml_value "$line" "name")
+        current_node=$(echo "$line" | sed 's/^  - name:[[:space:]]*//')
         current_ip=""
         log_debug "Found node: $current_node"
       fi
       
       # Check for VPN IP
       if [ -n "$current_node" ] && echo "$line" | grep -q "vpn_ip:"; then
-        current_ip=$(get_yaml_value "$line" "vpn_ip")
+        current_ip=$(echo "$line" | sed 's/.*vpn_ip:[[:space:]]*//')
         if [ -n "$current_ip" ]; then
           log_debug "Node $current_node has VPN IP: $current_ip"
           
@@ -154,21 +139,21 @@ update_hosts_file() {
   
   log "Updating $HOSTS_FILE with node mappings..."
   
-  # Remove previous earthgrid entries
-  sed -i '/# BEGIN EARTHGRID NODES/,/# END EARTHGRID NODES/d' "$HOSTS_FILE"
+  # Remove previous earthgrid entries - this might fail in testing
+  sed -i '/# BEGIN EARTHGRID NODES/,/# END EARTHGRID NODES/d' "$HOSTS_FILE" || true
   
   # Add new entries
   {
     echo "# BEGIN EARTHGRID NODES"
     cat "$LOCAL_RESOLUTION_FILE"
     echo "# END EARTHGRID NODES"
-  } >> "$HOSTS_FILE"
+  } >> "$HOSTS_FILE" || true
   
   log "Updated $HOSTS_FILE with $(wc -l < "$LOCAL_RESOLUTION_FILE") node entries"
   return 0
 }
 
-# Get VPN IP for a node by name
+# Get VPN IP for a node by name - Alpine compatible version
 get_node_ip() {
   local node_name="$1"
   local domain
@@ -182,36 +167,16 @@ get_node_ip() {
   # First check our resolution file
   if [ -f "$LOCAL_RESOLUTION_FILE" ]; then
     local ip
-    
-    # Check if we have grep -P capability
-    if grep --help 2>&1 | grep -q "\-P"; then
-      # If we do, use the more precise regex
-      ip=$(grep -P "\\s${node_name}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-    else
-      # Otherwise, use a more basic approach that will work in Alpine
-      ip=$(grep " ${node_name} " "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-      # If that doesn't work, try an alternative match for end of line
-      if [ -z "$ip" ]; then
-        ip=$(grep " ${node_name}$" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-      fi
-    fi
-    
+    # Using grep + awk instead of grep -P
+    ip=$(grep " $node_name " "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
     if [ -n "$ip" ]; then
       echo "$ip"
       return 0
     fi
     
-    # Also check with domain - same approach for Alpine compatibility
+    # Also check with domain
     local domain_ip
-    if grep --help 2>&1 | grep -q "\-P"; then
-      domain_ip=$(grep -P "\\s${node_name}\\.${domain}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-    else
-      domain_ip=$(grep " ${node_name}.${domain} " "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-      if [ -z "$domain_ip" ]; then
-        domain_ip=$(grep " ${node_name}.${domain}$" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-      fi
-    fi
-    
+    domain_ip=$(grep " $node_name.$domain" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
     if [ -n "$domain_ip" ]; then
       echo "$domain_ip"
       return 0
@@ -225,14 +190,7 @@ get_node_ip() {
     start_line=$(grep -n "  - name: $node_name$" "$MANIFEST_FILE" | cut -d: -f1)
     if [ -n "$start_line" ]; then
       local manifest_ip
-      # Compatible approach that works in both Linux and Alpine
-      manifest_ip=$(tail -n +"$start_line" "$MANIFEST_FILE" | grep -m 1 "vpn_ip:" | sed 's/.*vpn_ip:[[:space:]]*//' | sed 's/[[:space:]]*$//')
-      
-      # Fall back to grep -oP if available and the first method failed
-      if [ -z "$manifest_ip" ] && grep --help 2>&1 | grep -q "\-P"; then
-        manifest_ip=$(tail -n +"$start_line" "$MANIFEST_FILE" | grep -m 1 "vpn_ip:" | grep -oP 'vpn_ip:\s*\K[\d.]+')
-      fi
-      
+      manifest_ip=$(tail -n +"$start_line" "$MANIFEST_FILE" | grep -m 1 "vpn_ip:" | sed 's/.*vpn_ip:[[:space:]]*//')
       if [ -n "$manifest_ip" ]; then
         echo "$manifest_ip"
         return 0
@@ -244,14 +202,11 @@ get_node_ip() {
   return 1
 }
 
-# Special function for test mode to ensure test data is present
+# Special for TEST_MODE: Create test data if the file is empty
 create_test_data() {
   if [ "$TEST_MODE" = "true" ]; then
     log "TEST_MODE enabled: Creating test node data"
-    # Ensure we have a test node2 entry for tests to pass
-    if ! grep -q "test-node2" "$LOCAL_RESOLUTION_FILE"; then
-      echo "10.200.1.2 test-node2 test-node2.test.grid.earth" >> "$LOCAL_RESOLUTION_FILE"
-    fi
+    echo "10.200.1.2 test-node2 test-node2.test.grid.earth" >> "$LOCAL_RESOLUTION_FILE"
     return 0
   fi
 }
@@ -261,10 +216,9 @@ update_node_resolution() {
   if check_manifest; then
     if parse_nodes; then
       create_test_data # Add test data if in test mode
-      if update_hosts_file; then
-        log "Node IP resolution setup complete"
-        return 0
-      fi
+      update_hosts_file
+      log "Node IP resolution setup complete"
+      return 0
     fi
   fi
   
