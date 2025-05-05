@@ -102,16 +102,16 @@ jobs:
           cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
           
           # Create a simple Dockerfile
-          cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
-FROM alpine:3.17
+          cat > /tmp/earthgrid-integration/Dockerfile << EOF
+          FROM alpine:3.17
 
-RUN apk add --no-cache bash curl jq iproute2 git gnupg
+          RUN apk add --no-cache bash curl jq iproute2 git gnupg
 
-COPY scripts /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
+          COPY scripts /usr/local/bin/
+          RUN chmod +x /usr/local/bin/*.sh
 
-CMD ["/bin/bash"]
-EOF
+          CMD ["/bin/bash"]
+          EOF
 
       - name: Build Integration container
         uses: docker/build-push-action@v4
@@ -143,15 +143,15 @@ EOF
       - name: Create test GPG key
         run: |
           # Create a batch file for GPG key generation
-          cat > /tmp/gpg-gen.batch << 'EOF'
-Key-Type: RSA
-Key-Length: 2048
-Name-Real: Test Node
-Name-Email: test@example.com
-Expire-Date: 0
-%no-protection
-%commit
-EOF
+          cat > /tmp/gpg-gen.batch << EOF
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: Test Node
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %no-protection
+          %commit
+          EOF
           
           # Generate the key
           gpg --batch --generate-key /tmp/gpg-gen.batch
@@ -184,42 +184,42 @@ EOF
           echo "*.log" > .gitignore
           
           # Create a simple test manifest
-          cat > ./manifest/manifest.yaml << 'EOF'
----
-network:
-  name: earthgrid-test
-  version: 2.0.0
-  domain: test.grid.earth
-  vpn_network: 10.200.0.0/16
-  tahoe:
-    shares_needed: 3
-    shares_happy: 7
-    shares_total: 10
-    reserved_space: 50G
-
-introducer_furl: null
-
-nodes:
-  - name: test-node
-    internal_ip: 10.200.1.1
-    public_ip: auto
-    gpg_key_id: ${{ env.GPG_KEY_ID }}
-    region: test-region
-    status: active
-    storage_contribution: 10GB
-    storage_allocation: 3GB
-    is_publicly_accessible: true
-    roles:
-      - tinc_vpn
-      - tahoe_storage
-      - tahoe_client
-      - tahoe_introducer
-    ports:
-      tinc: 655
-      tahoe_storage: 3457
-      tahoe_client: 3456
-      tahoe_introducer: 3458
-EOF
+          cat > ./manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+            tahoe:
+              shares_needed: 3
+              shares_happy: 7
+              shares_total: 10
+              reserved_space: 50G
+          
+          introducer_furl: null
+          
+          nodes:
+            - name: test-node
+              internal_ip: 10.200.1.1
+              public_ip: auto
+              gpg_key_id: ${{ env.GPG_KEY_ID }}
+              region: test-region
+              status: active
+              storage_contribution: 10GB
+              storage_allocation: 3GB
+              is_publicly_accessible: true
+              roles:
+                - tinc_vpn
+                - tahoe_storage
+                - tahoe_client
+                - tahoe_introducer
+              ports:
+                tinc: 655
+                tahoe_storage: 3457
+                tahoe_client: 3456
+                tahoe_introducer: 3458
+          EOF
 
           # Commit the manifest file
           git add manifest .gitignore
@@ -228,19 +228,19 @@ EOF
       - name: Run container in test mode
         run: |
           # Create test environment file
-          cat > ./v2/Docker/.env.test << 'EOF'
-NODE_NAME=test-node
-INTERNAL_VPN_IP=10.200.1.1
-PUBLIC_IP=127.0.0.1
-GPG_KEY_ID=${{ env.GPG_KEY_ID }}
-GITHUB_REPO=test/repo
-GITHUB_BRANCH=main
-MANIFEST_FILENAME=manifest.yaml
-ENABLE_AUTO_DISCOVERY=false
-TEST_MODE=true
-GIT_MOCK=true
-CONTAINER_TYPE=tinc
-EOF
+          cat > ./v2/Docker/.env.test << EOF
+          NODE_NAME=test-node
+          INTERNAL_VPN_IP=10.200.1.1
+          PUBLIC_IP=127.0.0.1
+          GPG_KEY_ID=${{ env.GPG_KEY_ID }}
+          GITHUB_REPO=test/repo
+          GITHUB_BRANCH=main
+          MANIFEST_FILENAME=manifest.yaml
+          ENABLE_AUTO_DISCOVERY=false
+          TEST_MODE=true
+          GIT_MOCK=true
+          CONTAINER_TYPE=tinc
+          EOF
           
           # Create local directories
           mkdir -p ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest
@@ -337,16 +337,16 @@ EOF
           docker rm -f earthgrid-tinc-test || true
           
           # Create a cleanup script to deal with permission issues
-          cat > ./cleanup.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Use a temporary container to fix permissions and clean up
-docker run --rm -v $(pwd)/v2/Docker/data:/data -v $(pwd)/v2/Docker/secrets:/secrets \
-  --entrypoint /bin/bash \
-  alpine:latest \
-  -c "rm -rf /data/tinc /data/gnupg /data/logs /data/manifest-repo /data/manifest /secrets"
-EOF
+          cat > ./cleanup.sh << EOF
+          #!/bin/bash
+          set -e
+          
+          # Use a temporary container to fix permissions and clean up
+          docker run --rm -v $(pwd)/v2/Docker/data:/data -v $(pwd)/v2/Docker/secrets:/secrets \
+            --entrypoint /bin/bash \
+            alpine:latest \
+            -c "rm -rf /data/tinc /data/gnupg /data/logs /data/manifest-repo /data/manifest /secrets"
+          EOF
           chmod +x ./cleanup.sh
           
           # Run the cleanup script
@@ -372,16 +372,16 @@ EOF
           cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
           
           # Create a simple Dockerfile
-          cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
-FROM alpine:3.17
-
-RUN apk add --no-cache bash curl jq iproute2 git gnupg
-
-COPY scripts /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
-
-CMD ["/bin/bash"]
-EOF
+          cat > /tmp/earthgrid-integration/Dockerfile << EOF
+          FROM alpine:3.17
+          
+          RUN apk add --no-cache bash curl jq iproute2 git gnupg
+          
+          COPY scripts /usr/local/bin/
+          RUN chmod +x /usr/local/bin/*.sh
+          
+          CMD ["/bin/bash"]
+          EOF
 
       - name: Build Integration container
         uses: docker/build-push-action@v4
@@ -443,13 +443,13 @@ EOF
           mkdir -p /tmp/earthgrid-integration
           cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
           
-          cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
-FROM alpine:3.17
-RUN apk add --no-cache bash curl jq iproute2 git gnupg
-COPY scripts /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
-CMD ["/bin/bash"]
-EOF
+          cat > /tmp/earthgrid-integration/Dockerfile << EOF
+          FROM alpine:3.17
+          RUN apk add --no-cache bash curl jq iproute2 git gnupg
+          COPY scripts /usr/local/bin/
+          RUN chmod +x /usr/local/bin/*.sh
+          CMD ["/bin/bash"]
+          EOF
           
           docker build -t earthgrid/integration:test /tmp/earthgrid-integration
           
@@ -472,25 +472,25 @@ EOF
           
           # Create test manifest file to avoid errors
           mkdir -p ./v2/Docker/data/test-integration/manifest
-          cat > ./v2/Docker/data/test-integration/manifest/manifest.yaml << 'EOF'
----
-network:
-  name: earthgrid-test
-  version: 2.0.0
-  domain: test.grid.earth
-  vpn_network: 10.200.0.0/16
-
-nodes:
-  - name: test-node1
-    internal_ip: 10.200.1.1
-    vpn_ip: 10.200.1.1
-EOF
+          cat > ./v2/Docker/data/test-integration/manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+          EOF
           
           # Create log directory
           mkdir -p ./v2/Docker/data/test-integration/logs
           
           # Create a test entrypoint script
-          cat > ./v2/Docker/data/test-integration/entrypoint.sh << 'EOF'
+          cat > ./v2/Docker/data/test-integration/entrypoint.sh << EOF
           #!/bin/bash
           set -e
           
@@ -564,7 +564,7 @@ EOF
           mkdir -p ./v2/Docker/data/test-integration/logs
           
           # Create a test entrypoint script
-          cat > ./v2/Docker/data/test-integration/resolve-entrypoint.sh << 'EOF'
+          cat > ./v2/Docker/data/test-integration/resolve-entrypoint.sh << EOF
           #!/bin/bash
           set -e
           
@@ -583,6 +583,9 @@ EOF
             echo "Making script executable"
             chmod +x /usr/local/bin/resolve-node-ips.sh
           fi
+          
+          # Make required directories
+          mkdir -p /var/lib/earthgrid /var/log/earthgrid
           
           # Run the actual test
           echo "Running resolution script..."
@@ -725,60 +728,60 @@ EOF
           mkdir -p ./v2/Docker/data/test-tahoe/{tahoe-introducer,tahoe-client,tahoe-storage,logs,manifest,network-config}
           
           # Create a mock tahoe.cfg file for testing
-          cat > ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg << 'EOF'
-# This is a mock Tahoe-LAFS introducer configuration file for testing
-[node]
-nickname = test-introducer
-web.port = 3456
-web.static = public_html
-tub.port = 3458
-tub.location = 10.200.1.1:3458
-
-[client]
-introducer.furl = 
-helper.furl = 
-shares.needed = 3
-shares.happy = 7
-shares.total = 10
-
-[storage]
-enabled = false
-
-[helper]
-enabled = false
-
-[drop_upload]
-enabled = false
-
-[stats_gatherer]
-enabled = false
-EOF
+          cat > ./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg << EOF
+          # This is a mock Tahoe-LAFS introducer configuration file for testing
+          [node]
+          nickname = test-introducer
+          web.port = 3456
+          web.static = public_html
+          tub.port = 3458
+          tub.location = 10.200.1.1:3458
+          
+          [client]
+          introducer.furl = 
+          helper.furl = 
+          shares.needed = 3
+          shares.happy = 7
+          shares.total = 10
+          
+          [storage]
+          enabled = false
+          
+          [helper]
+          enabled = false
+          
+          [drop_upload]
+          enabled = false
+          
+          [stats_gatherer]
+          enabled = false
+          EOF
           
           # Create a mock manifest file
-          cat > ./v2/Docker/data/test-tahoe/manifest/manifest.yaml << 'EOF'
----
-network:
-  name: earthgrid-test
-  version: 2.0.0
-  domain: test.grid.earth
-  vpn_network: 10.200.0.0/16
-  tahoe:
-    shares_needed: 3
-    shares_happy: 7
-    shares_total: 10
-    reserved_space: 50G
-
-introducer_furl: null
-
-nodes:
-  - name: test-node1
-    internal_ip: 10.200.1.1
-    vpn_ip: 10.200.1.1
-    status: active
-    roles:
-      - tinc_vpn
-      - tahoe_introducer
-EOF
+          cat > ./v2/Docker/data/test-tahoe/manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+            tahoe:
+              shares_needed: 3
+              shares_happy: 7
+              shares_total: 10
+              reserved_space: 50G
+          
+          introducer_furl: null
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+              status: active
+              roles:
+                - tinc_vpn
+                - tahoe_introducer
+          EOF
           
           # Verify that we have the mock config file
           if [ ! -f "./v2/Docker/data/test-tahoe/tahoe-introducer/tahoe.cfg" ]; then
@@ -801,7 +804,7 @@ EOF
           sed -i '/^extract_introducer_furl/,/^}/ s|# Extract the FURL from the introducer.*|  # Skip actual extraction\n  echo "pb://abc123@10.200.1.1:3458/introducer"\n  return 0|' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
           # Create an entrypoint script for testing
-          cat > ./v2/Docker/data/test-tahoe/entrypoint.sh << 'EOF'
+          cat > ./v2/Docker/data/test-tahoe/entrypoint.sh << EOF
           #!/bin/bash
           set -e
           
@@ -867,13 +870,13 @@ EOF
           if [[ "$(docker images -q earthgrid/integration:test 2> /dev/null)" == "" ]]; then
             mkdir -p /tmp/earthgrid-integration
             cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
-            cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
-FROM alpine:3.17
-RUN apk add --no-cache bash curl jq iproute2 git gnupg
-COPY scripts /usr/local/bin/
-RUN chmod +x /usr/local/bin/*.sh
-CMD ["/bin/bash"]
-EOF
+            cat > /tmp/earthgrid-integration/Dockerfile << EOF
+            FROM alpine:3.17
+            RUN apk add --no-cache bash curl jq iproute2 git gnupg
+            COPY scripts /usr/local/bin/
+            RUN chmod +x /usr/local/bin/*.sh
+            CMD ["/bin/bash"]
+            EOF
             docker build -t earthgrid/integration:test /tmp/earthgrid-integration
           fi
           
@@ -882,7 +885,7 @@ EOF
           chmod +x ./v2/Docker/data/test-tahoe/sync-script.sh
           
           # Create an entrypoint script for testing
-          cat > ./v2/Docker/data/test-tahoe/sync-entrypoint.sh << 'EOF'
+          cat > ./v2/Docker/data/test-tahoe/sync-entrypoint.sh << EOF
           #!/bin/bash
           set -e
           
