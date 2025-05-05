@@ -120,30 +120,38 @@ To join an existing Earthgrid network:
 graph TD
     subgraph "Docker Environment"
         subgraph "earthgrid-tinc Container"
-            TC[Tinc VPN] --- TS[Sync Daemon]
-            TS --- TG[GPG Auth Module]
+            TC[Tinc VPN]
+            TS[Sync Daemon]
+            TG[GPG Auth Module]
+            TC --- TS
+            TS --- TG
             TC --- TG
         end
         
         subgraph "earthgrid-ui Container"
-            UI[Web Interface] --- API[Management API]
+            UI[Web Interface]
+            API[Management API]
+            UI --- API
         end
     end
     
-    subgraph "Host System"
-        V1[/etc/tinc Volume] --- TC
-        V2[GPG Keyring Volume] --- TG
-        V3[Manifest Volume] --- TS
-        UI --- V4[UI Data Volume]
-    end
+    V1["/etc/tinc Volume"]
+    V2["GPG Keyring Volume"]
+    V3["Manifest Volume"] 
+    V4["UI Data Volume"]
     
-    Internet((Internet)) --- TC
+    V1 --> TC
+    V2 --> TG
+    V3 --> TS
+    V4 --> UI
     
-    classDef container fill:#e6f3ff,stroke:#333,stroke-width:1px;
-    classDef volume fill:#f9e79f,stroke:#333,stroke-width:1px;
+    Internet((Internet)) --> TC
     
-    class TC,TS,TG,UI,API container;
-    class V1,V2,V3,V4 volume;
+    classDef container fill:#e6f3ff,stroke:#333,stroke-width:1px
+    classDef volume fill:#f9e79f,stroke:#333,stroke-width:1px
+    
+    class TC,TS,TG,UI,API container
+    class V1,V2,V3,V4 volume
 ```
 
 ### Tinc VPN Container
