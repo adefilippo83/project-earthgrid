@@ -72,7 +72,7 @@ get_node_roles() {
     local roles_start=$((start_line + roles_line))
     tail -n +$roles_start "$MANIFEST_FILE" | 
       sed -n '/^      - /p' | 
-      grep -oP '- \K.*' | 
+      sed 's/^      - //' | 
       while read -r role; do
         echo "$role"
       done
@@ -165,7 +165,7 @@ get_manifest_furl() {
   fi
   
   local furl
-  furl=$(grep -oP "^introducer_furl:\s*\K.*" "$MANIFEST_FILE")
+  furl=$(grep "^introducer_furl:" "$MANIFEST_FILE" | sed 's/^introducer_furl:[[:space:]]*//')
   if [ -z "$furl" ] || [ "$furl" = "null" ]; then
     error "No introducer FURL found in manifest"
     return 1
