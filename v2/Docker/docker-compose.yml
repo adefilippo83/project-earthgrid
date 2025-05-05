@@ -15,7 +15,7 @@ services:
       - INTERNAL_VPN_IP=${INTERNAL_VPN_IP:-10.100.1.1}
       - PUBLIC_IP=${PUBLIC_IP:-auto}
       - GPG_KEY_ID=${GPG_KEY_ID}
-      - GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+      - GITHUB_REPO=${GITHUB_REPO:-adefilippo83/project-earthgrid}
       - GITHUB_BRANCH=${GITHUB_BRANCH:-main}
       - MANIFEST_FILENAME=${MANIFEST_FILENAME:-manifest.yaml}
       - ENABLE_AUTO_DISCOVERY=${ENABLE_AUTO_DISCOVERY:-true}
@@ -48,7 +48,7 @@ services:
       - earthgrid-tinc
     environment:
       - NODE_NAME=${NODE_NAME:-node1}
-      - GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+      - GITHUB_REPO=${GITHUB_REPO:-adefilippo83/project-earthgrid}
     ports:
       - "8080:8080"
     networks:

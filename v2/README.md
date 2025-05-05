@@ -72,7 +72,7 @@ This implementation includes:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/example/project-earthgrid.git
+   git clone https://github.com/adefilippo83/project-earthgrid.git
    cd project-earthgrid/v2
    ```
 
@@ -95,7 +95,7 @@ This implementation includes:
    NODE_NAME=your-node-name
    INTERNAL_VPN_IP=10.100.1.X  # Choose an unused IP from manifest.yaml
    GPG_KEY_ID=YOUR_KEY_ID
-   GITHUB_REPO=your-username/earthgrid-config
+   GITHUB_REPO=adefilippo83/project-earthgrid
    EOF
    ```
 
@@ -310,7 +310,7 @@ environment:
   - INTERNAL_VPN_IP=${INTERNAL_VPN_IP:-10.100.1.1}
   - PUBLIC_IP=${PUBLIC_IP:-auto}
   - GPG_KEY_ID=${GPG_KEY_ID}
-  - GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+  - GITHUB_REPO=${GITHUB_REPO:-adefilippo83/project-earthgrid}
   - GITHUB_BRANCH=${GITHUB_BRANCH:-main}
   - MANIFEST_FILENAME=${MANIFEST_FILENAME:-manifest.yaml}
   - ENABLE_AUTO_DISCOVERY=${ENABLE_AUTO_DISCOVERY:-true}

@@ -47,7 +47,7 @@ Before you begin, ensure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/example/project-earthgrid.git
+git clone https://github.com/adefilippo83/project-earthgrid.git
 cd project-earthgrid/v2
 ```
 
@@ -108,7 +108,7 @@ cat > .env << EOF
 NODE_NAME=your-node-name
 INTERNAL_VPN_IP=10.100.1.X  # Same as in manifest.yaml
 GPG_KEY_ID=YOUR_KEY_ID
-GITHUB_REPO=org/earthgrid-config  # Repository containing the manifest
+GITHUB_REPO=adefilippo83/project-earthgrid  # Repository containing the manifest
 EOF
 ```
 

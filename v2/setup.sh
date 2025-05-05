@@ -130,8 +130,8 @@ read -p "Enter internal VPN IP (default: 10.100.1.1): " INTERNAL_VPN_IP
 INTERNAL_VPN_IP=${INTERNAL_VPN_IP:-10.100.1.1}
 
 # GitHub repo
-read -p "Enter GitHub repository for manifest (default: earthgrid/config): " GITHUB_REPO
-GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+read -p "Enter GitHub repository for manifest (default: adefilippo83/project-earthgrid): " GITHUB_REPO
+GITHUB_REPO=${GITHUB_REPO:-adefilippo83/project-earthgrid}
 
 # Create .env file
 print_step "Creating .env file..."
