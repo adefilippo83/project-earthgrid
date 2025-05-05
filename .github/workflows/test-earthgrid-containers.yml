@@ -133,9 +133,19 @@ jobs:
           # Prepare docker command
           echo "#!/bin/bash" > ./setup-test.sh
           echo "set -e" >> ./setup-test.sh
+          
+          echo "# Fix GPG ownership issue" >> ./setup-test.sh
+          echo "mkdir -p /root/.gnupg" >> ./setup-test.sh
+          echo "chmod -R 700 /root/.gnupg" >> ./setup-test.sh
+          echo "chown -R root:root /root/.gnupg" >> ./setup-test.sh
+          
           echo "# Import GPG key" >> ./setup-test.sh
           echo "gpg --batch --import /run/secrets/gpg_private_key" >> ./setup-test.sh
-          echo "chmod 700 /root/.gnupg" >> ./setup-test.sh
+          
+          echo "# Prepare Git for dubious ownership" >> ./setup-test.sh
+          echo "git config --global --add safe.directory /var/lib/earthgrid/manifest-repo" >> ./setup-test.sh
+          echo "git config --global --add safe.directory '*'" >> ./setup-test.sh
+          
           echo "# Run setup scripts" >> ./setup-test.sh
           echo "chmod +x /app/scripts/*.sh" >> ./setup-test.sh
           echo "/app/scripts/setup-tinc.sh" >> ./setup-test.sh

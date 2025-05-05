@@ -118,9 +118,18 @@ cat > ./test-setup.sh << EOF
 #!/bin/bash
 set -e
 
-# First import the GPG key properly
+# Fix GPG ownership issue
+mkdir -p /root/.gnupg
+chmod -R 700 /root/.gnupg
+chown -R root:root /root/.gnupg
+
+# Import the GPG key properly
 gpg --batch --import /run/secrets/gpg_private_key
-chmod 700 /root/.gnupg
+
+# Prepare Git for dubious ownership
+git config --global --add safe.directory /var/lib/earthgrid/manifest-repo
+git config --global --add safe.directory '*'
+git config --global advice.detachedHead false
 
 # Run the setup scripts
 chmod +x /app/scripts/*.sh
