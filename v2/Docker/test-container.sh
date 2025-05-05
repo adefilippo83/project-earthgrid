@@ -54,10 +54,23 @@ GNUPGHOME="$GPG_HOME" gpg --armor --export-secret-keys "$GPG_KEY_ID" > ./test-se
 chmod 600 ./test-secrets/gpg_private_key.asc
 
 print_step "Setting up test manifest..."
-mkdir -p ./test-data/manifest-repo/manifest ./test-data/manifest
+mkdir -p ./test-data/manifest-repo ./test-data/manifest
+
+# Initialize a git repo in the manifest directory
+cd ./test-data/manifest-repo
+git init
+git config --local user.email "test@example.com"
+git config --local user.name "Test User"
+mkdir -p manifest
+
+# Add the repo as a remote to simulate the GitHub repo
+git remote add origin https://github.com/test/repo.git
+
+# Create a .gitignore file
+echo "*.log" > .gitignore
 
 # Create a simple test manifest
-cat > ./test-data/manifest-repo/manifest/manifest.yaml << EOF
+cat > ./manifest/manifest.yaml << EOF
 ---
 network:
   name: earthgrid-test
@@ -76,6 +89,13 @@ nodes:
     storage_allocation: 3GB
     is_publicly_accessible: true
 EOF
+
+# Commit the manifest file
+git add manifest .gitignore
+git commit -m "Initial commit with test manifest"
+
+# Return to original directory
+cd ../../
 
 print_step "Creating test environment..."
 cat > ./.env.test << EOF

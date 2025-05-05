@@ -72,10 +72,23 @@ jobs:
       - name: Setup test manifest
         run: |
           # Create directories
-          mkdir -p ./v2/Docker/data/manifest-repo/manifest
+          mkdir -p ./v2/Docker/data/manifest-repo
+
+          # Initialize a git repo in the manifest directory
+          cd ./v2/Docker/data/manifest-repo
+          git init
+          git config --global user.email "test@example.com"
+          git config --global user.name "Test User"
+          mkdir -p manifest
+          
+          # Add the repo as a remote to simulate the GitHub repo
+          git remote add origin https://github.com/test/repo.git
+          
+          # Create a .gitignore file
+          echo "*.log" > .gitignore
           
           # Create a simple test manifest
-          cat > ./v2/Docker/data/manifest-repo/manifest/manifest.yaml << EOF
+          cat > ./manifest/manifest.yaml << EOF
           ---
           network:
             name: earthgrid-test
@@ -94,6 +107,10 @@ jobs:
               storage_allocation: 3GB
               is_publicly_accessible: true
           EOF
+
+          # Commit the manifest file
+          git add manifest .gitignore
+          git commit -m "Initial commit with test manifest"
 
       - name: Run container in test mode
         run: |

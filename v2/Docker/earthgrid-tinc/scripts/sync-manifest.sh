@@ -15,9 +15,21 @@ BRANCH="${GITHUB_BRANCH:-main}"
 MANIFEST_FILE="${MANIFEST_FILENAME:-manifest.yaml}"
 
 # Clone or update the repository
+if [ ! -d "$MANIFEST_REPO_DIR" ]; then
+    log "Creating manifest repository directory..."
+    mkdir -p $MANIFEST_REPO_DIR
+fi
+
 if [ ! -d "$MANIFEST_REPO_DIR/.git" ]; then
-    log "Initial repository clone..."
-    git clone --depth 1 -b $BRANCH https://github.com/$GITHUB_REPO.git $MANIFEST_REPO_DIR
+    # Check if directory is empty
+    if [ -z "$(ls -A $MANIFEST_REPO_DIR)" ]; then
+        log "Initial repository clone..."
+        git clone --depth 1 -b $BRANCH https://github.com/$GITHUB_REPO.git $MANIFEST_REPO_DIR
+    else
+        # Directory exists but is not a git repo
+        log "Manifest directory exists but is not a git repository..."
+        log "Using existing directory content without cloning"
+    fi
 else
     log "Updating existing repository..."
     cd $MANIFEST_REPO_DIR
