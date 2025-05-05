@@ -462,19 +462,12 @@ jobs:
           # Make the script executable
           chmod +x ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           
-          # Create a more robust test version of the script
-          # Create replacement functions
-          cat > ./v2/Docker/data/test-integration/replacement_funcs.sh << 'EOF'
-check_vpn_interface() {
-  log "TEST MODE: Skipping actual VPN interface check"
-  return 0
-}
-
-check_connectivity() {
-  log "TEST MODE: Skipping actual connectivity check"
-  return 0
-}
-EOF
+          # Create a more robust test version of the script by directly editing the file
+          echo '# Creating simplified test versions of the functions'
+          # Replace the VPN interface check function with a test version
+          echo 'check_vpn_interface() { log "TEST MODE: Skipping actual VPN interface check"; return 0; }' > ./v2/Docker/data/test-integration/vpn_func.sh
+          # Replace the connectivity check function with a test version
+          echo 'check_connectivity() { log "TEST MODE: Skipping actual connectivity check"; return 0; }' > ./v2/Docker/data/test-integration/conn_func.sh
           
           # Replace the functions using a different approach
           vpn_func=$(grep -n "^check_vpn_interface()" ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh | cut -d: -f1)
@@ -879,14 +872,9 @@ EOF
           # Make script executable
           chmod +x ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
-          # Create a test version of the extract_introducer_furl function
-          cat > ./v2/Docker/data/test-tahoe/test_furl_func.sh << 'EOF'
-extract_introducer_furl() {
-  log "TEST MODE: Skipping actual FURL extraction"
-  echo "pb://abc123@10.200.1.1:3458/introducer"
-  return 0
-}
-EOF
+          # Create a test version of the extract_introducer_furl function using echo
+          echo '# Creating simplified test version of the FURL extraction function'
+          echo 'extract_introducer_furl() { log "TEST MODE: Skipping actual FURL extraction"; echo "pb://abc123@10.200.1.1:3458/introducer"; return 0; }' > ./v2/Docker/data/test-tahoe/test_furl_func.sh
           
           # Find the extract_introducer_furl function and its end
           furl_func=$(grep -n "^extract_introducer_furl()" ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh | cut -d: -f1)
