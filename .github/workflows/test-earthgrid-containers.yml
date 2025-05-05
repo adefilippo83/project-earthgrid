@@ -20,13 +20,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run ShellCheck
+      - name: Run ShellCheck for Tinc scripts
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: './v2/Docker/earthgrid-tinc/scripts'
           severity: warning
 
-  test-tinc-container:
+      - name: Run ShellCheck for Tahoe Introducer scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './v2/Docker/earthgrid-tahoe-introducer/scripts'
+          severity: warning
+
+      - name: Run ShellCheck for Tahoe Storage scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './v2/Docker/earthgrid-tahoe-storage/scripts'
+          severity: warning
+
+      - name: Run ShellCheck for Tahoe Client scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './v2/Docker/earthgrid-tahoe-client/scripts'
+          severity: warning
+
+      - name: Run ShellCheck for Integration scripts
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './v2/Docker/earthgrid-integration/scripts'
+          severity: warning
+
+  build-containers:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,6 +67,78 @@ jobs:
           tags: earthgrid/tinc:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Build Tahoe Introducer container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-introducer
+          load: true
+          tags: earthgrid/tahoe-introducer:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Tahoe Storage container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-storage
+          load: true
+          tags: earthgrid/tahoe-storage:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Tahoe Client container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-client
+          load: true
+          tags: earthgrid/tahoe-client:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Prepare integration scripts
+        run: |
+          # Copy integration scripts to a temp dir for containerization
+          mkdir -p /tmp/earthgrid-integration
+          cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
+          
+          # Create a simple Dockerfile
+          cat > /tmp/earthgrid-integration/Dockerfile << EOF
+          FROM alpine:3.17
+          
+          RUN apk add --no-cache bash curl jq iproute2 git gnupg
+          
+          COPY scripts /usr/local/bin/
+          RUN chmod +x /usr/local/bin/*.sh
+          
+          CMD ["/bin/bash"]
+          EOF
+
+      - name: Build Integration container
+        uses: docker/build-push-action@v4
+        with:
+          context: /tmp/earthgrid-integration
+          load: true
+          tags: earthgrid/integration:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  test-tinc-container:
+    runs-on: ubuntu-latest
+    needs: build-containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Tinc container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tinc
+          load: true
+          tags: earthgrid/tinc:test
+          cache-from: type=gha
 
       - name: Create test GPG key
         run: |
@@ -95,6 +191,13 @@ jobs:
             version: 2.0.0
             domain: test.grid.earth
             vpn_network: 10.200.0.0/16
+            tahoe:
+              shares_needed: 3
+              shares_happy: 7
+              shares_total: 10
+              reserved_space: 50G
+          
+          introducer_furl: null
           
           nodes:
             - name: test-node
@@ -106,6 +209,16 @@ jobs:
               storage_contribution: 10GB
               storage_allocation: 3GB
               is_publicly_accessible: true
+              roles:
+                - tinc_vpn
+                - tahoe_storage
+                - tahoe_client
+                - tahoe_introducer
+              ports:
+                tinc: 655
+                tahoe_storage: 3457
+                tahoe_client: 3456
+                tahoe_introducer: 3458
           EOF
 
           # Commit the manifest file
@@ -126,6 +239,7 @@ jobs:
           ENABLE_AUTO_DISCOVERY=false
           TEST_MODE=true
           GIT_MOCK=true
+          CONTAINER_TYPE=tinc
           EOF
           
           # Create local directories
@@ -216,7 +330,7 @@ jobs:
           
           echo "Container tests passed successfully!"
 
-      - name: Cleanup
+      - name: Cleanup Tinc Test
         if: always()
         run: |
           # Stop and remove the container
@@ -240,3 +354,281 @@ jobs:
           
           # Remove remaining files
           rm -f ./v2/Docker/.env.test ./tinc.conf ./test-node-host ./cleanup.sh ./setup-test.sh
+
+  test-integration-scripts:
+    runs-on: ubuntu-latest
+    needs: build-containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Prepare integration scripts
+        run: |
+          # Copy integration scripts to a temp dir for containerization
+          mkdir -p /tmp/earthgrid-integration
+          cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
+          
+          # Create a simple Dockerfile
+          cat > /tmp/earthgrid-integration/Dockerfile << EOF
+          FROM alpine:3.17
+          
+          RUN apk add --no-cache bash curl jq iproute2 git gnupg
+          
+          COPY scripts /usr/local/bin/
+          RUN chmod +x /usr/local/bin/*.sh
+          
+          CMD ["/bin/bash"]
+          EOF
+
+      - name: Build Integration container
+        uses: docker/build-push-action@v4
+        with:
+          context: /tmp/earthgrid-integration
+          load: true
+          tags: earthgrid/integration:test
+          cache-from: type=gha
+
+      - name: Setup test environment
+        run: |
+          # Create directories
+          mkdir -p ./v2/Docker/data/test-integration/{manifest,logs,config}
+          
+          # Create test manifest file
+          cat > ./v2/Docker/data/test-integration/manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+            tahoe:
+              shares_needed: 3
+              shares_happy: 7
+              shares_total: 10
+              reserved_space: 50G
+          
+          introducer_furl: pb://abc123@10.200.1.1:3458/introducer
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+              public_ip: 192.168.1.100
+              status: active
+              roles:
+                - tinc_vpn
+                - tahoe_introducer
+                - tahoe_storage
+            - name: test-node2
+              internal_ip: 10.200.1.2
+              vpn_ip: 10.200.1.2
+              public_ip: 192.168.1.101
+              status: active
+              roles:
+                - tinc_vpn
+                - tahoe_storage
+                - tahoe_client
+          EOF
+          
+          # Create VPN status file
+          mkdir -p ./v2/Docker/data/test-integration/config/earthgrid
+          echo "VPN_READY=true" > ./v2/Docker/data/test-integration/config/vpn_status
+
+      - name: Test validate-vpn-network script
+        run: |
+          docker run --name test-validate-vpn \
+            -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
+            -v $(pwd)/v2/Docker/data/test-integration/logs:/var/log/earthgrid \
+            -e DEBUG=true \
+            -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
+            -e NODE_NAME=test-node1 \
+            earthgrid/integration:test \
+            /usr/local/bin/validate-vpn-network.sh
+          
+          # Check the log file to verify it ran correctly
+          mkdir -p ./test-logs
+          docker cp test-validate-vpn:/var/log/earthgrid/vpn-validation.log ./test-logs/
+          cat ./test-logs/vpn-validation.log
+          
+          # Cleanup
+          docker rm -f test-validate-vpn || true
+
+      - name: Test resolve-node-ips script
+        run: |
+          docker run --name test-resolve-ips \
+            -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
+            -v $(pwd)/v2/Docker/data/test-integration/logs:/var/log/earthgrid \
+            -e DEBUG=true \
+            -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
+            -e NODE_NAME=test-node1 \
+            earthgrid/integration:test \
+            /usr/local/bin/resolve-node-ips.sh
+          
+          # Check that the resolution file was created
+          mkdir -p ./test-logs
+          docker cp test-resolve-ips:/var/lib/earthgrid/node_resolution.txt ./test-logs/
+          cat ./test-logs/node_resolution.txt
+          
+          # Test IP resolution functionality
+          docker run --rm \
+            -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
+            -e NODE_NAME=test-node1 \
+            -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
+            earthgrid/integration:test \
+            /usr/local/bin/resolve-node-ips.sh resolve test-node2
+          
+          # Cleanup
+          docker rm -f test-resolve-ips || true
+
+  test-tahoe-containers:
+    runs-on: ubuntu-latest
+    needs: build-containers
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Tahoe Introducer container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-introducer
+          load: true
+          tags: earthgrid/tahoe-introducer:test
+          cache-from: type=gha
+
+      - name: Build Tahoe Storage container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-storage
+          load: true
+          tags: earthgrid/tahoe-storage:test
+          cache-from: type=gha
+
+      - name: Build Tahoe Client container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tahoe-client
+          load: true
+          tags: earthgrid/tahoe-client:test
+          cache-from: type=gha
+
+      - name: Prepare test environment
+        run: |
+          # Create the necessary directories for Tahoe testing
+          mkdir -p ./v2/Docker/data/test-tahoe/{manifest,logs,tahoe-introducer,tahoe-storage,tahoe-client}
+          
+          # Set up VPN status for testing
+          mkdir -p ./v2/Docker/data/test-tahoe/network-config
+          echo "VPN_READY=true" > ./v2/Docker/data/test-tahoe/vpn_status
+          touch ./v2/Docker/data/test-tahoe/network-config/network_configured
+          
+          # Create test manifest file
+          cat > ./v2/Docker/data/test-tahoe/manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+            tahoe:
+              shares_needed: 3
+              shares_happy: 7
+              shares_total: 10
+              reserved_space: 50G
+          
+          introducer_furl: null
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+              public_ip: 192.168.1.100
+              status: active
+              roles:
+                - tinc_vpn
+                - tahoe_introducer
+                - tahoe_storage
+            - name: test-node2
+              internal_ip: 10.200.1.2
+              vpn_ip: 10.200.1.2
+              public_ip: 192.168.1.101
+              status: active
+              roles:
+                - tinc_vpn
+                - tahoe_storage
+                - tahoe_client
+          EOF
+
+      - name: Test Tahoe Introducer container setup script
+        run: |
+          # Run the container and execute the setup script
+          docker run --name tahoe-introducer-test \
+            -v $(pwd)/v2/Docker/data/test-tahoe/tahoe-introducer:/var/lib/tahoe-introducer \
+            -v $(pwd)/v2/Docker/data/test-tahoe/logs:/var/log/earthgrid \
+            -v $(pwd)/v2/Docker/data/test-tahoe/manifest:/var/lib/earthgrid/manifest \
+            -v $(pwd)/v2/Docker/data/test-tahoe/network-config:/var/lib/earthgrid/network-config \
+            -e NODE_NAME=test-node1 \
+            -e NICKNAME=test-introducer \
+            -e INTRODUCER_PORT=3458 \
+            earthgrid/tahoe-introducer:test \
+            /usr/local/bin/setup-introducer.sh
+          
+          # Verify that config was created
+          docker cp tahoe-introducer-test:/var/lib/tahoe-introducer/tahoe.cfg ./tahoe-introducer.cfg
+          cat ./tahoe-introducer.cfg
+          
+          # Check that tahoe.cfg was created and has correct values
+          if ! grep -q "nickname = test-introducer" ./tahoe-introducer.cfg; then
+            echo "Error: tahoe.cfg does not contain correct nickname"
+            exit 1
+          fi
+          
+          if ! grep -q "tub.port = 3458" ./tahoe-introducer.cfg; then
+            echo "Error: tahoe.cfg does not contain correct port"
+            exit 1
+          fi
+          
+          # Cleanup
+          docker rm -f tahoe-introducer-test || true
+          rm -f ./tahoe-introducer.cfg
+
+      - name: Test Tahoe FURL synchronization
+        run: |
+          # Create a test FURL file
+          mkdir -p ./v2/Docker/data/test-tahoe/tahoe-introducer/private
+          echo "pb://abc123@10.200.1.1:3458/introducer" > ./v2/Docker/data/test-tahoe/tahoe-introducer/private/introducer.furl
+          
+          # Run the FURL sync script
+          docker run --name tahoe-furl-sync-test \
+            -v $(pwd)/v2/Docker/data/test-tahoe/tahoe-introducer:/var/lib/tahoe-introducer \
+            -v $(pwd)/v2/Docker/data/test-tahoe/logs:/var/log/earthgrid \
+            -v $(pwd)/v2/Docker/data/test-tahoe/manifest:/var/lib/earthgrid/manifest \
+            -e NODE_NAME=test-node1 \
+            -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
+            -e DEBUG=true \
+            earthgrid/integration:test \
+            /usr/local/bin/sync-introducer-furl.sh
+          
+          # Verify that the FURL was added to the manifest
+          docker cp tahoe-furl-sync-test:/var/lib/earthgrid/manifest/manifest.yaml ./updated-manifest.yaml
+          cat ./updated-manifest.yaml
+          
+          if ! grep -q "introducer_furl: pb://abc123@10.200.1.1:3458/introducer" ./updated-manifest.yaml; then
+            echo "Error: FURL was not updated in manifest"
+            exit 1
+          fi
+          
+          # Cleanup
+          docker rm -f tahoe-furl-sync-test || true
+          rm -f ./updated-manifest.yaml
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Remove test directories
+          rm -rf ./v2/Docker/data/test-tahoe ./v2/Docker/data/test-integration ./test-logs
