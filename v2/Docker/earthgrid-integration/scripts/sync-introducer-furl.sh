@@ -10,7 +10,8 @@
 set -e
 
 # Configuration
-SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+# SCRIPT_DIR can be uncommented when needed
+# SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 NODE_NAME="${NODE_NAME:-node1}"
 MANIFEST_DIR="${MANIFEST_DIR:-/var/lib/earthgrid/manifest}"
 MANIFEST_FILE="${MANIFEST_DIR}/manifest.yaml"
@@ -52,14 +53,16 @@ get_node_roles() {
     echo "$EARTHGRID_ROLES"
   elif [ -f "$MANIFEST_FILE" ]; then
     # Find the section for this node
-    local start_line=$(grep -n "  - name: $NODE_NAME$" "$MANIFEST_FILE" | cut -d: -f1)
+    local start_line
+    start_line=$(grep -n "  - name: $NODE_NAME$" "$MANIFEST_FILE" | cut -d: -f1)
     if [ -z "$start_line" ]; then
       error "Node $NODE_NAME not found in manifest"
       return 1
     fi
     
     # Extract role information - look for roles section
-    local roles_line=$(tail -n +$start_line "$MANIFEST_FILE" | grep -n "roles:" | head -n 1 | cut -d: -f1)
+    local roles_line
+    roles_line=$(tail -n +$start_line "$MANIFEST_FILE" | grep -n "roles:" | head -n 1 | cut -d: -f1)
     if [ -z "$roles_line" ]; then
       log "No roles section found for node $NODE_NAME"
       return 0
@@ -131,10 +134,12 @@ update_manifest_furl() {
     sed -i "s|^introducer_furl:.*$|introducer_furl: $furl|" "$MANIFEST_FILE"
   else
     # Add new line (after network section)
-    local network_end=$(grep -n "^network:" "$MANIFEST_FILE" | cut -d: -f1)
+    local network_end
+    network_end=$(grep -n "^network:" "$MANIFEST_FILE" | cut -d: -f1)
     if [ -n "$network_end" ]; then
       # Find the next top-level section after network
-      local next_section=$(tail -n +$((network_end + 1)) "$MANIFEST_FILE" | grep -n "^[a-zA-Z]" | head -n 1 | cut -d: -f1)
+      local next_section
+      next_section=$(tail -n +$((network_end + 1)) "$MANIFEST_FILE" | grep -n "^[a-zA-Z]" | head -n 1 | cut -d: -f1)
       if [ -n "$next_section" ]; then
         local insert_line=$((network_end + next_section - 1))
         sed -i "${insert_line}i\\introducer_furl: $furl" "$MANIFEST_FILE"
@@ -209,8 +214,10 @@ update_node_furl() {
       sed -i "/^introducer.furl/c\\introducer.furl = $furl" "$tahoe_cfg"
     else
       # Find the end of client section
-      local client_line=$(grep -n "^\[client\]" "$tahoe_cfg" | cut -d: -f1)
-      local next_section=$(tail -n +$((client_line + 1)) "$tahoe_cfg" | grep -n "^\[" | head -n 1 | cut -d: -f1)
+      local client_line
+      client_line=$(grep -n "^\[client\]" "$tahoe_cfg" | cut -d: -f1)
+      local next_section
+      next_section=$(tail -n +$((client_line + 1)) "$tahoe_cfg" | grep -n "^\[" | head -n 1 | cut -d: -f1)
       if [ -n "$next_section" ]; then
         local insert_line=$((client_line + next_section - 1))
         sed -i "${insert_line}i\\introducer.furl = $furl" "$tahoe_cfg"
@@ -239,7 +246,8 @@ EOF
 publish_introducer_furl() {
   log "Publishing introducer FURL from node $NODE_NAME"
   
-  local furl=$(extract_introducer_furl)
+  local furl
+  furl=$(extract_introducer_furl)
   if [ -z "$furl" ]; then
     error "Could not extract introducer FURL"
     return 1
@@ -274,7 +282,8 @@ publish_introducer_furl() {
 sync_furl_from_manifest() {
   log "Synchronizing introducer FURL from manifest for node $NODE_NAME"
   
-  local furl=$(get_manifest_furl)
+  local furl
+  furl=$(get_manifest_furl)
   if [ -z "$furl" ]; then
     error "Could not get introducer FURL from manifest"
     return 1
@@ -282,7 +291,8 @@ sync_furl_from_manifest() {
   
   # Check if we have a cached FURL and it's the same
   if [ -f "$FURL_CACHE_FILE" ]; then
-    local cached_furl=$(cat "$FURL_CACHE_FILE")
+    local cached_furl
+    cached_furl=$(cat "$FURL_CACHE_FILE")
     if [ "$cached_furl" = "$furl" ]; then
       log "Cached FURL matches manifest FURL. No update needed."
       return 0
