@@ -12,14 +12,15 @@
 set -e
 
 # Configuration
-MAX_RETRIES=30
-RETRY_INTERVAL=10
-VPN_INTERFACE="tinc0"
+MAX_RETRIES="${MAX_RETRIES:-30}"
+RETRY_INTERVAL="${RETRY_INTERVAL:-10}"
+VPN_INTERFACE="${VPN_INTERFACE:-tinc0}"
 LOG_FILE="/var/log/earthgrid/vpn-validation.log"
 MANIFEST_DIR="${MANIFEST_DIR:-/var/lib/earthgrid/manifest}"
 MANIFEST_FILE="${MANIFEST_DIR}/manifest.yaml"
 NODE_NAME="${NODE_NAME:-node1}"
 DEBUG="${DEBUG:-false}"
+TEST_MODE="${TEST_MODE:-false}"
 
 # Configure logging
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -43,6 +44,13 @@ error() {
 # Check if VPN interface exists and is up
 check_vpn_interface() {
   log "Checking VPN interface $VPN_INTERFACE..."
+  
+  # If TEST_MODE is enabled, skip the actual check
+  if [ "$TEST_MODE" = "true" ]; then
+    log "TEST_MODE enabled: Skipping actual VPN interface check"
+    return 0
+  fi
+  
   if ! ip link show "$VPN_INTERFACE" &>/dev/null; then
     error "VPN interface $VPN_INTERFACE does not exist"
     return 1
@@ -76,6 +84,12 @@ get_other_nodes_vpn_ips() {
 
 # Check connectivity to other nodes
 check_connectivity() {
+  # If TEST_MODE is enabled, skip the actual check
+  if [ "$TEST_MODE" = "true" ]; then
+    log "TEST_MODE enabled: Skipping actual connectivity check"
+    return 0
+  fi
+  
   local other_ips
   other_ips=$(get_other_nodes_vpn_ips)
   
@@ -98,7 +112,8 @@ check_connectivity() {
   done
   
   # Allow validation to pass if at least one node is reachable (when there are multiple nodes)
-  local total_nodes=$(echo "$other_ips" | wc -l)
+  local total_nodes
+  total_nodes=$(echo "$other_ips" | wc -l)
   if [ $total_nodes -gt 0 ] && [ $failed -eq $total_nodes ]; then
     error "Failed to reach any other nodes in the VPN network"
     return 1

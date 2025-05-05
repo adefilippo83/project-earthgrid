@@ -78,14 +78,16 @@ get_node_roles() {
   fi
   
   # Find the section for this node
-  local start_line=$(grep -n "  - name: $NODE_NAME$" "$MANIFEST_FILE" | cut -d: -f1)
+  local start_line
+  start_line=$(grep -n "  - name: $NODE_NAME$" "$MANIFEST_FILE" | cut -d: -f1)
   if [ -z "$start_line" ]; then
     error "Node $NODE_NAME not found in manifest"
     return 1
   fi
   
   # Extract role information - look for roles section
-  local roles_line=$(tail -n +$start_line "$MANIFEST_FILE" | grep -n "roles:" | head -n 1 | cut -d: -f1)
+  local roles_line
+  roles_line=$(tail -n +"$start_line" "$MANIFEST_FILE" | grep -n "roles:" | head -n 1 | cut -d: -f1)
   if [ -z "$roles_line" ]; then
     log "No roles section found for node $NODE_NAME"
     return 0
@@ -171,8 +173,10 @@ write_network_config() {
   mkdir -p "$(dirname "$config_file")"
   
   # Get the network parameters
-  local vpn_network=$(get_vpn_network)
-  local network_domain=$(get_network_domain)
+  local vpn_network
+  vpn_network=$(get_vpn_network)
+  local network_domain
+  network_domain=$(get_network_domain)
   
   # Write configuration
   cat > "$config_file" << EOF

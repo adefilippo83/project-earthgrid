@@ -75,12 +75,14 @@ parse_nodes() {
   
   # Create resolution file
   mkdir -p "$(dirname "$LOCAL_RESOLUTION_FILE")"
-  > "$LOCAL_RESOLUTION_FILE"
+  touch "$LOCAL_RESOLUTION_FILE"
+  truncate -s 0 "$LOCAL_RESOLUTION_FILE"
   
   local in_nodes_section=false
   local current_node=""
   local current_ip=""
-  local domain=$(get_network_domain)
+  local domain
+  domain=$(get_network_domain)
   
   log "Parsing nodes from manifest file..."
   
@@ -153,7 +155,8 @@ update_hosts_file() {
 # Get VPN IP for a node by name
 get_node_ip() {
   local node_name="$1"
-  local domain=$(get_network_domain)
+  local domain
+  domain=$(get_network_domain)
   
   if [ -z "$node_name" ]; then
     error "No node name provided"
@@ -162,16 +165,18 @@ get_node_ip() {
   
   # First check our resolution file
   if [ -f "$LOCAL_RESOLUTION_FILE" ]; then
-    local ip=$(grep -P "\\s${node_name}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
+    local ip
+    ip=$(grep -P "\\s${node_name}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
     if [ -n "$ip" ]; then
       echo "$ip"
       return 0
     fi
     
     # Also check with domain
-    ip=$(grep -P "\\s${node_name}\\.${domain}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
-    if [ -n "$ip" ]; then
-      echo "$ip"
+    local domain_ip
+    domain_ip=$(grep -P "\\s${node_name}\\.${domain}(\\s|$)" "$LOCAL_RESOLUTION_FILE" | awk '{print $1}')
+    if [ -n "$domain_ip" ]; then
+      echo "$domain_ip"
       return 0
     fi
   fi
@@ -179,11 +184,13 @@ get_node_ip() {
   # If we couldn't find it in our file, try the manifest directly
   if [ -f "$MANIFEST_FILE" ]; then
     # Find the section for this node and extract IP
-    local start_line=$(grep -n "  - name: $node_name$" "$MANIFEST_FILE" | cut -d: -f1)
+    local start_line
+    start_line=$(grep -n "  - name: $node_name$" "$MANIFEST_FILE" | cut -d: -f1)
     if [ -n "$start_line" ]; then
-      local ip=$(tail -n +$start_line "$MANIFEST_FILE" | grep -m 1 "vpn_ip:" | grep -oP 'vpn_ip:\s*\K[\d.]+')
-      if [ -n "$ip" ]; then
-        echo "$ip"
+      local manifest_ip
+      manifest_ip=$(tail -n +"$start_line" "$MANIFEST_FILE" | grep -m 1 "vpn_ip:" | grep -oP 'vpn_ip:\s*\K[\d.]+')
+      if [ -n "$manifest_ip" ]; then
+        echo "$manifest_ip"
         return 0
       fi
     fi

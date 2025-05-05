@@ -144,7 +144,7 @@ wait_for_introducer_furl() {
       mkdir -p "$(dirname "$furl_cache_file")"
       echo "$INTRODUCER_FURL" > "$furl_cache_file"
       return 0
-    }
+    fi
     
     log "Introducer FURL not available yet. Waiting... ($timeout_counter/$STARTUP_TIMEOUT seconds)"
     sleep $HEALTHCHECK_INTERVAL

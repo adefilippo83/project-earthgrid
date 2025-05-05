@@ -96,7 +96,7 @@ extract_introducer_furl() {
   if [ ! -f "$introducer_cfg" ]; then
     error "Introducer configuration not found: $introducer_cfg"
     return 1
-  }
+  fi
   
   # Extract the FURL from the introducer's tahoe.cfg
   local furl_file="$INTRODUCER_DIR/private/introducer.furl"
