@@ -219,5 +219,24 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
+          # Stop and remove the container
           docker rm -f earthgrid-tinc-test || true
-          rm -rf ./v2/Docker/secrets ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest-repo ./v2/Docker/data/manifest ./v2/Docker/.env.test ./tinc.conf ./test-node-host
+          
+          # Create a cleanup script to deal with permission issues
+          cat > ./cleanup.sh << EOF
+          #!/bin/bash
+          set -e
+          
+          # Use a temporary container to fix permissions and clean up
+          docker run --rm -v $(pwd)/v2/Docker/data:/data -v $(pwd)/v2/Docker/secrets:/secrets \
+            --entrypoint /bin/bash \
+            alpine:latest \
+            -c "rm -rf /data/tinc /data/gnupg /data/logs /data/manifest-repo /data/manifest /secrets"
+          EOF
+          chmod +x ./cleanup.sh
+          
+          # Run the cleanup script
+          ./cleanup.sh || true
+          
+          # Remove remaining files
+          rm -f ./v2/Docker/.env.test ./tinc.conf ./test-node-host ./cleanup.sh ./setup-test.sh

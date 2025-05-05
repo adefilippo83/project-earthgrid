@@ -209,7 +209,26 @@ docker rm -f earthgrid-tinc-test
 # Ask if the user wants to keep the test files
 read -p "Do you want to keep the test files? (y/n): " KEEP_FILES
 if [[ "$KEEP_FILES" != "y" && "$KEEP_FILES" != "Y" ]]; then
-  rm -rf ./test-data ./test-secrets ./.env.test "$GPG_HOME"
+  print_step "Cleaning up test files..."
+  
+  # Create a cleanup script to deal with permission issues
+  cat > ./cleanup.sh << EOF
+#!/bin/bash
+set -e
+
+# Use a temporary container to fix permissions and clean up
+docker run --rm -v "$(pwd)/test-data:/data" -v "$(pwd)/test-secrets:/secrets" \
+  --entrypoint /bin/bash \
+  alpine:latest \
+  -c "rm -rf /data /secrets"
+EOF
+  chmod +x ./cleanup.sh
+  
+  # Run the cleanup script
+  ./cleanup.sh
+  
+  # Remove remaining files
+  rm -rf "$GPG_HOME" ./.env.test ./cleanup.sh ./test-setup.sh
   print_step "Test files removed."
 else
   print_step "Test files kept for inspection at ./test-data and ./test-secrets"
