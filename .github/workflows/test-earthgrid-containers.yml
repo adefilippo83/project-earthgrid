@@ -459,6 +459,9 @@ jobs:
           # Copy the script directly from the filesystem instead of using docker cp
           cp ./v2/Docker/earthgrid-integration/scripts/validate-vpn-network.sh ./v2/Docker/data/test-integration/scripts/
           
+          # Make the script executable
+          chmod +x ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+          
           # Modify the script to handle testing environment
           sed -i 's/check_vpn_interface/echo "TEST MODE: Skipping actual VPN interface check"; return 0 #check_vpn_interface/' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           sed -i 's/check_connectivity/echo "TEST MODE: Skipping actual connectivity check"; return 0 #check_connectivity/' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
@@ -490,14 +493,14 @@ jobs:
           docker run --name test-validate-vpn \
             -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
             -v $(pwd)/v2/Docker/data/test-integration/logs:/var/log/earthgrid \
-            -v $(pwd)/v2/Docker/data/test-integration/scripts/validate-vpn-network.sh:/usr/local/bin/test-validate-vpn.sh \
+            -v $(pwd)/v2/Docker/data/test-integration/scripts/validate-vpn-network.sh:/usr/local/bin/validate-vpn-network.sh \
             -e DEBUG=true \
             -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
             -e NODE_NAME=test-node1 \
             -e TEST_MODE=true \
             -e MAX_RETRIES=2 \
             earthgrid/integration:test \
-            /usr/local/bin/test-validate-vpn.sh
+            /usr/local/bin/validate-vpn-network.sh
           
           # Check the log file to verify it ran correctly
           mkdir -p ./test-logs
@@ -524,6 +527,9 @@ jobs:
           # Copy the script directly instead of using docker cp
           cp ./v2/Docker/earthgrid-integration/scripts/resolve-node-ips.sh ./v2/Docker/data/test-integration/scripts/
           
+          # Make script executable
+          chmod +x ./v2/Docker/data/test-integration/scripts/resolve-node-ips.sh
+          
           # Make sure test directories and files exist
           mkdir -p ./v2/Docker/data/test-integration/logs
           
@@ -531,7 +537,7 @@ jobs:
           docker run --name test-resolve-ips \
             -v $(pwd)/v2/Docker/data/test-integration:/var/lib/earthgrid \
             -v $(pwd)/v2/Docker/data/test-integration/logs:/var/log/earthgrid \
-            -v $(pwd)/v2/Docker/data/test-integration/scripts/resolve-node-ips.sh:/usr/local/bin/test-resolve-node-ips.sh \
+            -v $(pwd)/v2/Docker/data/test-integration/scripts/resolve-node-ips.sh:/usr/local/bin/resolve-node-ips.sh \
             -e DEBUG=true \
             -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
             -e NODE_NAME=test-node1 \
@@ -728,8 +734,11 @@ jobs:
           # Run the FURL sync script directly to verify it works properly
           cp ./v2/Docker/earthgrid-integration/scripts/sync-introducer-furl.sh ./v2/Docker/data/test-tahoe/
           
-          # Modify it to work in test mode
-          sed -i 's|extract_introducer_furl|# Skip actual extraction\n  echo "pb://abc123@10.200.1.1:3458/introducer" # extract_introducer_furl|g' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+          # Make script executable
+          chmod +x ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+          
+          # Modify it to work in test mode - only change within the function itself
+          sed -i '/^extract_introducer_furl/,/^}/ s|# Extract the FURL from the introducer.*|  # Skip actual extraction\n  echo "pb://abc123@10.200.1.1:3458/introducer"\n  return 0|' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
           # Run the script in a minimal container
           docker run --rm \
@@ -776,11 +785,16 @@ jobs:
             docker build -t earthgrid/integration:test /tmp/earthgrid-integration
           fi
           
+          # Make a copy of the script for testing
+          cp ./v2/Docker/earthgrid-integration/scripts/sync-introducer-furl.sh ./v2/Docker/data/test-tahoe/sync-script.sh
+          chmod +x ./v2/Docker/data/test-tahoe/sync-script.sh
+          
           # Run the FURL sync script
           docker run --name tahoe-furl-sync-test \
             -v $(pwd)/v2/Docker/data/test-tahoe/tahoe-introducer:/var/lib/tahoe-introducer \
             -v $(pwd)/v2/Docker/data/test-tahoe/logs:/var/log/earthgrid \
             -v $(pwd)/v2/Docker/data/test-tahoe/manifest:/var/lib/earthgrid/manifest \
+            -v $(pwd)/v2/Docker/data/test-tahoe/sync-script.sh:/usr/local/bin/sync-introducer-furl.sh \
             -e NODE_NAME=test-node1 \
             -e MANIFEST_DIR=/var/lib/earthgrid/manifest \
             -e DEBUG=true \
