@@ -1,0 +1,3 @@
+#!/bin/sh
+ip addr del ${INTERNAL_VPN_IP}/16 dev $INTERFACE
+ip link set $INTERFACE down

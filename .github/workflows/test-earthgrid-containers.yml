@@ -1,0 +1,155 @@
+name: Test Earthgrid Containers
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'v2/Docker/**'
+      - '.github/workflows/test-earthgrid-containers.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'v2/Docker/**'
+      - '.github/workflows/test-earthgrid-containers.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  lint-shell-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './v2/Docker/earthgrid-tinc/scripts'
+          severity: warning
+
+  test-tinc-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Tinc container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tinc
+          load: true
+          tags: earthgrid/tinc:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create test GPG key
+        run: |
+          # Create a batch file for GPG key generation
+          cat > /tmp/gpg-gen.batch << EOF
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: Test Node
+          Name-Email: test@example.com
+          Expire-Date: 0
+          %no-protection
+          %commit
+          EOF
+          
+          # Generate the key
+          gpg --batch --generate-key /tmp/gpg-gen.batch
+          
+          # Export the key ID
+          GPG_KEY_ID=$(gpg --list-keys --with-colons test@example.com | grep -m 1 "^pub" | cut -d: -f5)
+          echo "GPG_KEY_ID=$GPG_KEY_ID" >> $GITHUB_ENV
+          
+          # Export the private key for the container
+          mkdir -p ./v2/Docker/secrets
+          gpg --armor --export-secret-keys $GPG_KEY_ID > ./v2/Docker/secrets/gpg_private_key.asc
+          chmod 600 ./v2/Docker/secrets/gpg_private_key.asc
+
+      - name: Setup test manifest
+        run: |
+          # Create directories
+          mkdir -p ./v2/Docker/data/manifest-repo/manifest
+          
+          # Create a simple test manifest
+          cat > ./v2/Docker/data/manifest-repo/manifest/manifest.yaml << EOF
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node
+              internal_ip: 10.200.1.1
+              public_ip: auto
+              gpg_key_id: ${{ env.GPG_KEY_ID }}
+              region: test-region
+              status: active
+              storage_contribution: 10GB
+              storage_allocation: 3GB
+              is_publicly_accessible: true
+          EOF
+
+      - name: Run container in test mode
+        run: |
+          # Create test environment file
+          cat > ./v2/Docker/.env.test << EOF
+          NODE_NAME=test-node
+          INTERNAL_VPN_IP=10.200.1.1
+          PUBLIC_IP=127.0.0.1
+          GPG_KEY_ID=${{ env.GPG_KEY_ID }}
+          GITHUB_REPO=test/repo
+          GITHUB_BRANCH=main
+          MANIFEST_FILENAME=manifest.yaml
+          ENABLE_AUTO_DISCOVERY=false
+          TEST_MODE=true
+          EOF
+          
+          # Create local directories
+          mkdir -p ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest
+          
+          # Run container in test mode with simplified entrypoint
+          docker run --name earthgrid-tinc-test --cap-add=NET_ADMIN \
+            --env-file ./v2/Docker/.env.test \
+            -v $(pwd)/v2/Docker/data/tinc:/etc/tinc \
+            -v $(pwd)/v2/Docker/data/gnupg:/root/.gnupg \
+            -v $(pwd)/v2/Docker/data/logs:/var/log/earthgrid \
+            -v $(pwd)/v2/Docker/data/manifest-repo:/var/lib/earthgrid/manifest-repo \
+            -v $(pwd)/v2/Docker/data/manifest:/var/lib/earthgrid/manifest \
+            -v $(pwd)/v2/Docker/secrets/gpg_private_key.asc:/run/secrets/gpg_private_key \
+            --entrypoint /bin/bash \
+            earthgrid/tinc:test \
+            -c "set -e; chmod +x /app/scripts/*.sh; /app/scripts/setup-tinc.sh && /app/scripts/sync-manifest.sh && echo 'Test completed successfully!'"
+          
+          # Verify that key files were created
+          docker cp earthgrid-tinc-test:/etc/tinc/earthgrid/tinc.conf ./tinc.conf
+          docker cp earthgrid-tinc-test:/etc/tinc/earthgrid/hosts/test-node ./test-node-host
+          
+          echo "--- tinc.conf ---"
+          cat ./tinc.conf
+          
+          echo "--- test-node host file ---"
+          cat ./test-node-host
+          
+          if ! grep -q "Name = test-node" ./tinc.conf; then
+            echo "Error: tinc.conf does not contain correct node name"
+            exit 1
+          fi
+          
+          if ! grep -q "Subnet = 10.200.1.1/32" ./test-node-host; then
+            echo "Error: Host file does not contain correct subnet"
+            exit 1
+          fi
+          
+          echo "Container tests passed successfully!"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f earthgrid-tinc-test || true
+          rm -rf ./v2/Docker/secrets ./v2/Docker/data/tinc ./v2/Docker/data/gnupg ./v2/Docker/data/logs ./v2/Docker/data/manifest-repo ./v2/Docker/data/manifest ./v2/Docker/.env.test ./tinc.conf ./test-node-host

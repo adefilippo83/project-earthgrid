@@ -1,0 +1,108 @@
+name: Build and Push Earthgrid Containers
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'v2/Docker/**'
+      - '.github/workflows/build-earthgrid-containers.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'v2/Docker/**'
+      - '.github/workflows/build-earthgrid-containers.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-tinc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}/earthgrid-tinc
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=long
+            latest
+
+      - name: Build and push Tinc container
+        uses: docker/build-push-action@v4
+        with:
+          context: ./v2/Docker/earthgrid-tinc
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Future UI container build job
+  # build-ui:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  # 
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+  # 
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v2
+  # 
+  #     - name: Login to GitHub Container Registry
+  #       if: github.event_name != 'pull_request'
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  # 
+  #     - name: Extract metadata
+  #       id: meta
+  #       uses: docker/metadata-action@v4
+  #       with:
+  #         images: ghcr.io/${{ github.repository }}/earthgrid-ui
+  #         tags: |
+  #           type=semver,pattern={{version}}
+  #           type=semver,pattern={{major}}.{{minor}}
+  #           type=ref,event=branch
+  #           type=ref,event=pr
+  #           type=sha,format=long
+  #           latest
+  # 
+  #     - name: Build and push UI container
+  #       uses: docker/build-push-action@v4
+  #       with:
+  #         context: ./v2/Docker/earthgrid-ui
+  #         platforms: linux/amd64,linux/arm64,linux/arm/v7
+  #         push: ${{ github.event_name != 'pull_request' }}
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max

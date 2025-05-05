@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Tinc VPN node service
+  earthgrid-tinc:
+    image: earthgrid/tinc:2.0
+    container_name: earthgrid-tinc
+    restart: unless-stopped
+    build:
+      context: ./earthgrid-tinc
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - NODE_NAME=${NODE_NAME:-node1}
+      - INTERNAL_VPN_IP=${INTERNAL_VPN_IP:-10.100.1.1}
+      - PUBLIC_IP=${PUBLIC_IP:-auto}
+      - GPG_KEY_ID=${GPG_KEY_ID}
+      - GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+      - GITHUB_BRANCH=${GITHUB_BRANCH:-main}
+      - MANIFEST_FILENAME=${MANIFEST_FILENAME:-manifest.yaml}
+      - ENABLE_AUTO_DISCOVERY=${ENABLE_AUTO_DISCOVERY:-true}
+      - SYNC_INTERVAL=${SYNC_INTERVAL:-3600}
+    volumes:
+      - ./data/tinc:/etc/tinc
+      - ./data/gnupg:/root/.gnupg
+      - ./data/logs:/var/log/earthgrid
+      - ./data/manifest-repo:/var/lib/earthgrid/manifest-repo
+      - ./data/manifest:/var/lib/earthgrid/manifest
+    ports:
+      - "655:655/udp"
+      - "655:655/tcp"
+    networks:
+      - earthgrid-net
+      - default
+    secrets:
+      - source: gpg_private_key
+        target: gpg_private_key
+      - source: tinc_private_key
+        target: tinc_private_key
+        optional: true
+
+  # Basic network management UI (optional)
+  earthgrid-ui:
+    image: earthgrid/network-ui:2.0
+    container_name: earthgrid-ui
+    restart: unless-stopped
+    depends_on:
+      - earthgrid-tinc
+    environment:
+      - NODE_NAME=${NODE_NAME:-node1}
+      - GITHUB_REPO=${GITHUB_REPO:-earthgrid/config}
+    ports:
+      - "8080:8080"
+    networks:
+      - earthgrid-net
+      - default
+    volumes:
+      - ./data/ui:/data
+
+networks:
+  earthgrid-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+secrets:
+  gpg_private_key:
+    file: ${GPG_KEY_FILE:-./secrets/gpg_private_key.asc}
+  tinc_private_key:
+    file: ${TINC_KEY_FILE:-./secrets/tinc_rsa_key.priv}
+    optional: true
+
+# This docker-compose file includes:
+# 1. The Tinc VPN container for mesh networking
+# 2. An optional management UI for network monitoring and configuration
+#
+# To run with custom node name:
+# NODE_NAME=mynode GPG_KEY_ID=ABC123 docker-compose up -d
