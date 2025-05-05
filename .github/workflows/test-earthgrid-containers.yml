@@ -462,9 +462,20 @@ jobs:
           # Make the script executable
           chmod +x ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           
-          # Modify the script to handle testing environment
-          sed -i 's/check_vpn_interface/echo "TEST MODE: Skipping actual VPN interface check"; return 0 #check_vpn_interface/' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
-          sed -i 's/check_connectivity/echo "TEST MODE: Skipping actual connectivity check"; return 0 #check_connectivity/' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+          # Create a more robust test version of the script
+          # Replace the check_vpn_interface function with a test version
+          sed -i '/^check_vpn_interface()/,/^}/c\
+check_vpn_interface() {\
+  log "TEST MODE: Skipping actual VPN interface check"\
+  return 0\
+}' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
+
+          # Replace the check_connectivity function with a test version
+          sed -i '/^check_connectivity()/,/^}/c\
+check_connectivity() {\
+  log "TEST MODE: Skipping actual connectivity check"\
+  return 0\
+}' ./v2/Docker/data/test-integration/scripts/validate-vpn-network.sh
           
           # Create a mock vpn status file
           mkdir -p ./v2/Docker/data/test-integration
@@ -492,7 +503,7 @@ jobs:
           # Create a test entrypoint script
           cat > ./v2/Docker/data/test-integration/entrypoint.sh << EOF
           #!/bin/bash
-          set -e
+          set -ex
           
           # Print environment for debugging
           echo "Environment variables:"
@@ -510,9 +521,34 @@ jobs:
             chmod +x /usr/local/bin/validate-vpn-network.sh
           fi
           
-          # Run the actual test
+          # Make sure required directories exist
+          mkdir -p /var/lib/earthgrid/manifest
+          mkdir -p /var/log/earthgrid
+          
+          # Create a simple dummy manifest file if it doesn't exist
+          if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
+            echo "Creating dummy manifest file for testing"
+            cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFINNER
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+          EOFINNER
+          fi
+          
+          # Set VPN ready status
+          echo "VPN_READY=true" > /var/lib/earthgrid/vpn_status
+          
+          # Run the actual test with verbose output for debugging
           echo "Running validation script..."
-          /usr/local/bin/validate-vpn-network.sh
+          bash -x /usr/local/bin/validate-vpn-network.sh
           EOF
           
           # Make entrypoint executable
@@ -566,7 +602,7 @@ jobs:
           # Create a test entrypoint script
           cat > ./v2/Docker/data/test-integration/resolve-entrypoint.sh << EOF
           #!/bin/bash
-          set -e
+          set -ex
           
           # Print environment for debugging
           echo "Environment variables:"
@@ -585,11 +621,32 @@ jobs:
           fi
           
           # Make required directories
-          mkdir -p /var/lib/earthgrid /var/log/earthgrid
+          mkdir -p /var/lib/earthgrid/manifest /var/log/earthgrid
           
-          # Run the actual test
+          # Create a simple dummy manifest file if it doesn't exist
+          if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
+            echo "Creating dummy manifest file for testing"
+            cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFINNER
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+            - name: test-node2
+              internal_ip: 10.200.1.2
+              vpn_ip: 10.200.1.2
+          EOFINNER
+          fi
+          
+          # Run the actual test with debug output
           echo "Running resolution script..."
-          /usr/local/bin/resolve-node-ips.sh
+          bash -x /usr/local/bin/resolve-node-ips.sh
           EOF
           
           # Make entrypoint executable
@@ -800,16 +857,26 @@ jobs:
           # Make script executable
           chmod +x ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
-          # Modify it to work in test mode - only change within the function itself
-          sed -i '/^extract_introducer_furl/,/^}/ s|# Extract the FURL from the introducer.*|  # Skip actual extraction\n  echo "pb://abc123@10.200.1.1:3458/introducer"\n  return 0|' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+          # Replace the extract_introducer_furl function with a test version
+          sed -i '
+          /^extract_introducer_furl()/,/^}/ c\
+extract_introducer_furl() {\
+  log "TEST MODE: Skipping actual FURL extraction"\
+  echo "pb://abc123@10.200.1.1:3458/introducer"\
+  return 0\
+}
+          ' ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
+          
+          # Verify the change
+          grep -A 5 "extract_introducer_furl" ./v2/Docker/data/test-tahoe/sync-introducer-furl.sh
           
           # Create an entrypoint script for testing
           cat > ./v2/Docker/data/test-tahoe/entrypoint.sh << EOF
           #!/bin/bash
-          set -e
+          set -ex
           
           # Make necessary directories
-          mkdir -p /var/lib/earthgrid /var/log/earthgrid
+          mkdir -p /var/lib/earthgrid /var/log/earthgrid /var/lib/tahoe-introducer /var/lib/tahoe-introducer/private
           
           # Ensure script is executable
           if [ ! -x "/usr/local/bin/sync-furl.sh" ]; then
@@ -826,9 +893,36 @@ jobs:
           echo "Checking script content:"
           head -n 20 /usr/local/bin/sync-furl.sh
           
-          # Run the script
+          # Create a dummy introducer.furl file if needed
+          if [ ! -f "/var/lib/tahoe-introducer/private/introducer.furl" ]; then
+            echo "Creating dummy introducer.furl file"
+            echo "pb://abc123@10.200.1.1:3458/introducer" > /var/lib/tahoe-introducer/private/introducer.furl
+          fi
+          
+          # Create a simple dummy manifest file if it doesn't exist
+          if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
+            echo "Creating dummy manifest file for testing"
+            cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFINNER
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+              roles:
+                - tinc_vpn
+                - tahoe_introducer
+          EOFINNER
+          fi
+          
+          # Run the script with debug
           echo "Running sync script..."
-          /usr/local/bin/sync-furl.sh
+          bash -x /usr/local/bin/sync-furl.sh
           EOF
           
           # Make entrypoint executable
@@ -870,13 +964,14 @@ jobs:
           if [[ "$(docker images -q earthgrid/integration:test 2> /dev/null)" == "" ]]; then
             mkdir -p /tmp/earthgrid-integration
             cp -r ./v2/Docker/earthgrid-integration/scripts /tmp/earthgrid-integration/
-            cat > /tmp/earthgrid-integration/Dockerfile << EOF
-            FROM alpine:3.17
-            RUN apk add --no-cache bash curl jq iproute2 git gnupg
-            COPY scripts /usr/local/bin/
-            RUN chmod +x /usr/local/bin/*.sh
-            CMD ["/bin/bash"]
-            EOF
+            # Note the indentation for the Dockerfile here - making it flat to avoid heredoc issues
+            cat > /tmp/earthgrid-integration/Dockerfile << 'EOF'
+FROM alpine:3.17
+RUN apk add --no-cache bash curl jq iproute2 git gnupg
+COPY scripts /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh
+CMD ["/bin/bash"]
+EOF
             docker build -t earthgrid/integration:test /tmp/earthgrid-integration
           fi
           
@@ -887,7 +982,7 @@ jobs:
           # Create an entrypoint script for testing
           cat > ./v2/Docker/data/test-tahoe/sync-entrypoint.sh << EOF
           #!/bin/bash
-          set -e
+          set -ex
           
           # Print environment for debugging
           echo "Environment variables:"
@@ -906,11 +1001,38 @@ jobs:
           fi
           
           # Make required directories
-          mkdir -p /var/lib/earthgrid /var/log/earthgrid
+          mkdir -p /var/lib/earthgrid/manifest /var/log/earthgrid /var/lib/tahoe-introducer /var/lib/tahoe-introducer/private
           
-          # Run the actual test
+          # Create a dummy introducer.furl file if needed
+          if [ ! -f "/var/lib/tahoe-introducer/private/introducer.furl" ]; then
+            echo "Creating dummy introducer.furl file"
+            echo "pb://abc123@10.200.1.1:3458/introducer" > /var/lib/tahoe-introducer/private/introducer.furl
+          fi
+          
+          # Create a simple dummy manifest file if it doesn't exist
+          if [ ! -f "/var/lib/earthgrid/manifest/manifest.yaml" ]; then
+            echo "Creating dummy manifest file for testing"
+            cat > /var/lib/earthgrid/manifest/manifest.yaml << EOFINNER
+          ---
+          network:
+            name: earthgrid-test
+            version: 2.0.0
+            domain: test.grid.earth
+            vpn_network: 10.200.0.0/16
+          
+          nodes:
+            - name: test-node1
+              internal_ip: 10.200.1.1
+              vpn_ip: 10.200.1.1
+              roles:
+                - tinc_vpn
+                - tahoe_introducer
+          EOFINNER
+          fi
+          
+          # Run the actual test with debug output
           echo "Running sync script..."
-          /usr/local/bin/sync-introducer-furl.sh
+          bash -x /usr/local/bin/sync-introducer-furl.sh
           EOF
           
           # Make entrypoint executable
