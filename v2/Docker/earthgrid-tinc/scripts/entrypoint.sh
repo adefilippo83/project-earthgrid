@@ -7,7 +7,7 @@ log() {
 }
 
 # Verify essential environment variables
-log "Starting Earthgrid Tinc node setup..."
+log "Starting Earthgrid-Tinc node setup..."
 
 if [ -z "$NODE_NAME" ]; then
     log "ERROR: NODE_NAME not defined"
