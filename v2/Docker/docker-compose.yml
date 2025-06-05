@@ -48,7 +48,6 @@ services:
       context: ./earthgrid-tahoe-client
     depends_on:
       - earthgrid-tinc
-    entrypoint: ["/usr/local/lib/earthgrid/integration/container-startup.sh"]
     environment:
       - NODE_NAME=${NODE_NAME:-node1}
       - CLIENT_PORT=${TAHOE_CLIENT_PORT:-3456}
@@ -81,7 +80,6 @@ services:
       context: ./earthgrid-tahoe-storage
     depends_on:
       - earthgrid-tinc
-    entrypoint: ["/usr/local/lib/earthgrid/integration/container-startup.sh"]
     environment:
       - NODE_NAME=${NODE_NAME:-node1}
       - STORAGE_PORT=${TAHOE_STORAGE_PORT:-3457}
@@ -114,7 +112,6 @@ services:
       context: ./earthgrid-tahoe-introducer
     depends_on:
       - earthgrid-tinc
-    entrypoint: ["/usr/local/lib/earthgrid/integration/container-startup.sh"]
     environment:
       - NODE_NAME=${NODE_NAME:-node1}
       - INTRODUCER_PORT=${TAHOE_INTRODUCER_PORT:-3458}
