@@ -138,26 +138,6 @@ services:
     deploy:
       replicas: ${DEPLOY_INTRODUCER:-0}
 
-  # Basic network management UI (optional)
-  earthgrid-ui:
-    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-ui:latest
-    container_name: earthgrid-ui
-    restart: unless-stopped
-    depends_on:
-      - earthgrid-tinc
-    environment:
-      - NODE_NAME=${NODE_NAME:-node1}
-      - GITHUB_REPO=${GITHUB_REPO:-adefilippo83/project-earthgrid}
-    ports:
-      - "8080:8080"
-    networks:
-      - earthgrid-net
-      - default
-    volumes:
-      - ./data/ui:/data
-    deploy:
-      replicas: ${DEPLOY_UI:-1}
-
 networks:
   earthgrid-net:
     driver: bridge
