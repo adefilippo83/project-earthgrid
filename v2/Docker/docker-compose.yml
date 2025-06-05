@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Tinc VPN node service
   earthgrid-tinc:
-    image: earthgrid/tinc:2.0
+    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-tinc:latest
     container_name: earthgrid-tinc
     restart: unless-stopped
     build:
@@ -40,11 +40,10 @@ services:
         target: gpg_private_key
       - source: tinc_private_key
         target: tinc_private_key
-        optional: true
 
   # Tahoe-LAFS client service (optional, based on node role)
   earthgrid-tahoe-client:
-    image: earthgrid/tahoe-client:1.0
+    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-tahoe-client:latest
     container_name: earthgrid-tahoe-client
     restart: unless-stopped
     build:
@@ -77,7 +76,7 @@ services:
 
   # Tahoe-LAFS storage service (optional, based on node role)
   earthgrid-tahoe-storage:
-    image: earthgrid/tahoe-storage:1.0
+    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-tahoe-storage:latest
     container_name: earthgrid-tahoe-storage
     restart: unless-stopped
     build:
@@ -110,7 +109,7 @@ services:
 
   # Tahoe-LAFS introducer service (optional, based on node role)
   earthgrid-tahoe-introducer:
-    image: earthgrid/tahoe-introducer:1.0
+    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-tahoe-introducer:latest
     container_name: earthgrid-tahoe-introducer
     restart: unless-stopped
     build:
@@ -141,7 +140,7 @@ services:
 
   # Basic network management UI (optional)
   earthgrid-ui:
-    image: earthgrid/network-ui:2.0
+    image: ghcr.io/adefilippo83/project-earthgrid/earthgrid-ui:latest
     container_name: earthgrid-ui
     restart: unless-stopped
     depends_on:
@@ -171,7 +170,6 @@ secrets:
     file: ${GPG_KEY_FILE:-./secrets/gpg_private_key.asc}
   tinc_private_key:
     file: ${TINC_KEY_FILE:-./secrets/tinc_rsa_key.priv}
-    optional: true
 
 # This docker-compose file includes:
 # 1. The Tinc VPN container for mesh networking

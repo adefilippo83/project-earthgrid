@@ -150,10 +150,10 @@ EOF
 
 print_step "Environment file created successfully."
 
-# Build and start containers
-print_step "Building and starting containers..."
+# Pull and start containers
+print_step "Pulling images and starting containers..."
 cd Docker
-docker-compose build
+docker-compose pull
 docker-compose up -d
 
 # Provide instructions for next steps
