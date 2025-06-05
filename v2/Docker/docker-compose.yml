@@ -38,8 +38,6 @@ services:
     secrets:
       - source: gpg_private_key
         target: gpg_private_key
-      - source: tinc_private_key
-        target: tinc_private_key
 
   # Tahoe-LAFS client service (optional, based on node role)
   earthgrid-tahoe-client:
@@ -148,8 +146,6 @@ networks:
 secrets:
   gpg_private_key:
     file: ${GPG_KEY_FILE:-./secrets/gpg_private_key.asc}
-  tinc_private_key:
-    file: ${TINC_KEY_FILE:-./secrets/tinc_rsa_key.priv}
 
 # This docker-compose file includes:
 # 1. The Tinc VPN container for mesh networking
